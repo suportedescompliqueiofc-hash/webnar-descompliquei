@@ -1,0 +1,180 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap");
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-hot: var(--brand-hot);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --font-display: "Bebas Neue", sans-serif;
+  --font-body: "Barlow", sans-serif;
+  --font-condensed: "Barlow Condensed", sans-serif;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #090909;
+  --foreground: oklch(0.98 0 0);
+  --card: #161616;
+  --card-foreground: oklch(0.98 0 0);
+  --popover: #161616;
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: #e85d24;
+  --primary-foreground: #ffffff;
+  --secondary: #161616;
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: #1a1a1a;
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: #e85d24;
+  --accent-foreground: #ffffff;
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: #222222;
+  --input: #161616;
+  --ring: #e85d24;
+  --brand: #e85d24;
+  --brand-hot: #ff7a3d;
+  --surface: #161616;
+  --surface-2: #1c1c1c;
+}
+
+.dark {
+  --background: #090909;
+  --foreground: oklch(0.98 0 0);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html, body {
+    background-color: #090909;
+    color: oklch(0.98 0 0);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    position: relative;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); letter-spacing: 0.01em; }
+  .font-condensed { font-family: var(--font-condensed); }
+
+  .text-gradient-orange {
+    background: linear-gradient(110deg, #ff7a3d 10%, #e85d24 40%, #ffae6b 60%, #e85d24 90%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shineText 3.5s linear infinite;
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 0 0 rgba(232, 93, 36, 0.6);
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  .pulse-dot {
+    position: relative;
+  }
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    background: rgba(232, 93, 36, 0.5);
+    animation: pulseDot 1.6s ease-out infinite;
+  }
+
+  .shimmer-btn { position: relative; overflow: hidden; }
+  .shimmer-btn::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -120%;
+    width: 80%; height: 100%;
+    background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.25) 50%, transparent 80%);
+    transform: skewX(-20deg);
+    animation: shimmer 2.8s ease-in-out infinite;
+  }
+
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fade-up.in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shineText {
+  to { background-position: 200% center; }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 36, 0.55), 0 0 30px rgba(232,93,36,0.3); }
+  50% { box-shadow: 0 0 0 12px rgba(232, 93, 36, 0), 0 0 50px rgba(232,93,36,0.55); }
+}
+@keyframes pulseDot {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+@keyframes shimmer {
+  0% { left: -120%; }
+  60%, 100% { left: 140%; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop-in { animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes progressFill {
+  from { width: 0%; }
+}
+.animate-progress { animation: progressFill 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
