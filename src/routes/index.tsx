@@ -38,6 +38,7 @@ function Landing() {
   const [especialidade, setEspecialidade] = useState("");
   
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ function Landing() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || nome.trim().split(" ").length < 2) {
       setErr("Informe nome e sobrenome.");
@@ -57,8 +58,28 @@ function Landing() {
       return;
     }
     if (!especialidade) return setErr("Selecione sua especialidade.");
-    
+
     setErr("");
+    setLoading(true);
+
+    try {
+      await fetch("https://webhook.orbevision.shop/webhook/webnar-1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: nome.trim(),
+          whatsapp: phone.replace(/\D/g, ""),
+          whatsapp_formatado: phone,
+          especialidade,
+          origem: "landing-page-webinar",
+          data_inscricao: new Date().toISOString(),
+        }),
+      });
+    } catch {
+      // Segue para /obrigado mesmo se o webhook falhar
+    }
+
+    setLoading(false);
     navigate({ to: "/obrigado" });
   };
 
@@ -189,10 +210,17 @@ function Landing() {
 
           <button
             type="submit"
-            className="glow-orange shimmer-btn mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white"
+            disabled={loading}
+            className="glow-orange shimmer-btn mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white disabled:opacity-70"
           >
-            <span className="whitespace-nowrap">Quero Garantir Minha Vaga</span>
-            <span aria-hidden="true" className="leading-none">→</span>
+            {loading ? (
+              <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <>
+                <span className="whitespace-nowrap">Quero Garantir Minha Vaga</span>
+                <span aria-hidden="true" className="leading-none">→</span>
+              </>
+            )}
           </button>
 
 
