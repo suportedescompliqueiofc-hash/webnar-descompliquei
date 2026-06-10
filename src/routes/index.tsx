@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { LuxuryBackground } from "@/components/LuxuryBackground";
 import lupaImg from "../../img/lupa.jpg?url";
@@ -277,17 +276,8 @@ function Index() {
       {screen !== "hero" && <Logo />}
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl flex-col items-center justify-center px-6 pb-32 pt-10">
-        <AnimatePresence mode="wait">
           {screen === "hero" && (
-            <motion.section
-              key="hero"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12, pointerEvents: "none" }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="text-center"
-              style={{ pointerEvents: "auto" }}
-            >
+            <section className="text-center animate-[fade-in-up_0.5s_ease-out]">
               <h1 className="text-5xl font-black leading-[1] tracking-tight text-white sm:text-6xl md:text-[5rem]">
                 Esse método já <span className="text-[#E8C77A]">dobrou</span> o faturamento de{" "}
                 <span className="bg-gradient-to-r from-[#C9A84C] to-[#E8C77A] bg-clip-text text-transparent">
@@ -313,21 +303,11 @@ function Index() {
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Online
                 </span>
               </div>
-            </motion.section>
+            </section>
           )}
 
-
-
           {screen === "video" && (
-            <motion.section
-              key="video"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12, pointerEvents: "none" }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="w-full text-center"
-              style={{ pointerEvents: "auto" }}
-            >
+            <section className="w-full text-center animate-[fade-in-up_0.5s_ease-out]">
               <p className="mb-6 text-xs font-semibold uppercase tracking-[0.25em] text-white/70">
                 Assista antes de continuar
               </p>
@@ -347,18 +327,11 @@ function Index() {
               <div className="mt-12">
                 <GoldButton onClick={() => setScreen("form")}>Continuar</GoldButton>
               </div>
-            </motion.section>
+            </section>
           )}
 
           {screen === "form" && step && (
-            <motion.section
-              key={`step-${stepIdx}`}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="w-full text-center"
-            >
+            <section key={stepIdx} className="w-full text-center animate-[fade-in-slide_0.35s_ease-out]">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#C9A84C]">
                 Pergunta {stepIdx + 1} de {total}
               </p>
@@ -469,25 +442,14 @@ function Index() {
                   </div>
                 </>
               )}
-            </motion.section>
+            </section>
           )}
 
           {screen === "done" && (
-            <motion.section
-              key="done"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="text-center"
-            >
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="mb-6 text-xs font-semibold uppercase tracking-[0.25em] text-white/70"
-              >
+            <section className="text-center animate-[fade-in-up_0.6s_ease-out]">
+              <p className="mb-6 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 animate-[fade-in_0.5s_ease-out_0.2s_both]">
                 Falta apenas um passo
-              </motion.p>
+              </p>
 
               <h2 className="text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-[4rem]">
                 Sua vaga está{" "}
@@ -520,17 +482,11 @@ function Index() {
               <p className="mt-6 text-xs font-light text-white/30">
                 Sua vaga só estará confirmada após entrar no grupo.
               </p>
-            </motion.section>
+            </section>
           )}
 
           {screen === "disqualified" && (
-            <motion.section
-              key="disqualified"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="text-center"
-            >
+            <section className="text-center animate-[fade-in-up_0.6s_ease-out]">
               <p className="mb-6 text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
                 Obrigado pelo interesse
               </p>
@@ -549,9 +505,8 @@ function Index() {
               <p className="mx-auto mt-4 max-w-md text-sm font-light leading-relaxed text-white/50">
                 Por isso, não conseguimos liberar sua vaga nesta turma. Agradecemos o seu interesse.
               </p>
-            </motion.section>
+            </section>
           )}
-        </AnimatePresence>
       </main>
 
       {/* footer pill */}
