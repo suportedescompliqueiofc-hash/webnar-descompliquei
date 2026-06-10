@@ -56,7 +56,7 @@ export function LuxuryBackground() {
 
       {/* fine gold particles */}
       <div className="absolute inset-0 opacity-60">
-        {Array.from({ length: 24 }).map((_, i) => {
+        {Array.from({ length: 10 }).map((_, i) => {
           const left = (i * 137.5) % 100;
           const top = (i * 89.7) % 100;
           const delay = (i * 0.7) % 8;

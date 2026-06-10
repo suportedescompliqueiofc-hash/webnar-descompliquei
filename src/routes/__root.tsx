@@ -92,8 +92,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" },
+      { rel: "preload", as: "style", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" },
+      { rel: "preload", as: "style", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" },
     ],
     scripts: [
       {
@@ -123,10 +123,11 @@ function RootShell({ children }: { children: ReactNode }) {
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
+        {/* Load fonts asynchronously — prevents render blocking */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.head,fs=['https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap','https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap'];fs.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;h.appendChild(l);});})();` }} />
         {children}
         <Scripts />
       </body>
-
     </html>
   );
 }
