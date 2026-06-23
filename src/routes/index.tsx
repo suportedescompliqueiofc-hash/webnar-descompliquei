@@ -35,7 +35,9 @@ function Landing() {
   useFadeUp();
   const [nome, setNome] = useState("");
   const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [especialidade, setEspecialidade] = useState("");
+  const [faturamento, setFaturamento] = useState("");
   
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,8 @@ function Landing() {
       return;
     }
     if (!especialidade) return setErr("Selecione sua especialidade.");
+    if (!faturamento) return setErr("Selecione seu faturamento.");
+    if (!instagram.trim()) return setErr("Informe seu @ do Instagram.");
 
     setErr("");
     setLoading(true);
@@ -70,7 +74,9 @@ function Landing() {
           nome: nome.trim(),
           whatsapp: phone.replace(/\D/g, ""),
           whatsapp_formatado: phone,
+          instagram: instagram.trim().startsWith("@") ? instagram.trim() : `@${instagram.trim()}`,
           especialidade,
+          faturamento,
           origem: "landing-page-webinar",
           data_inscricao: new Date().toISOString(),
         }),
@@ -202,6 +208,23 @@ function Landing() {
               value={especialidade}
               onChange={setEspecialidade}
             />
+
+            <RadioGroup
+              label="Faturamento Mensal"
+              options={["Até R$15k", "R$15k a R$30k", "R$30k a R$60k", "Mais de R$100k"]}
+              value={faturamento}
+              onChange={setFaturamento}
+            />
+
+            <Field label="@ do Instagram Profissional">
+              <input
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="@sua_clinica"
+                autoComplete="off"
+                className="input-base"
+              />
+            </Field>
           </div>
 
           {err && (
