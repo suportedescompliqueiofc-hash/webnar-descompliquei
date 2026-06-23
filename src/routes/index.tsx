@@ -230,7 +230,7 @@ function Index() {
           socio: choiceLabels.socio[answers.socio] ?? answers.socio ?? "",
           faturamento_mensal: choiceLabels.faturamento[answers.faturamento] ?? answers.faturamento ?? "",
           maior_gargalo: choiceLabels.gargalo[answers.gargalo] ?? answers.gargalo ?? "",
-          evento: "Webinário 16/06",
+          evento: "Webinário 02/07",
           submitted_at: new Date().toISOString(),
         };
         try {
@@ -268,7 +268,7 @@ function Index() {
       {screen === "hero" && (
         <div className="relative z-20 w-full bg-gradient-to-r from-[#9b7a2a] via-[#C9A84C] to-[#9b7a2a] px-4 py-3 text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-black sm:text-xs">
-            EVENTO GRATUITO · ONLINE · 16/06 · SEGUNDA · 12H · VAGAS LIMITADAS
+            EVENTO GRATUITO · ONLINE · 02/07 · QUARTA · 12H · VAGAS LIMITADAS
           </p>
         </div>
       )}
@@ -287,14 +287,14 @@ function Index() {
               </h1>
               <p className="mx-auto mt-8 max-w-lg text-base font-light leading-relaxed text-white/70 sm:text-lg">
                 Vou abrir um horário exclusivo no webinário do dia{" "}
-                <span className="font-semibold text-white">16/06 às 12h</span> para mostrar como sua clínica pode faturar mais sem investir mais em tráfego pago.
+                <span className="font-semibold text-white">02/07 às 12h</span> para mostrar como sua clínica pode faturar mais sem investir mais em tráfego pago.
               </p>
               <div className="mt-12">
                 <GoldButton onClick={() => setScreen("video")}>Garantir minha vaga</GoldButton>
               </div>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/80">
-                  16 de Junho
+                  02 de Julho
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/80">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#C9A84C]" /> 12h
@@ -313,12 +313,12 @@ function Index() {
               </p>
               <h2 className="text-4xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl">
                 Veja o que você vai aprender no{" "}
-                <span className="text-[#C9A84C]">dia 16/06</span>
+                <span className="text-[#C9A84C]">dia 02/07</span>
               </h2>
               <div className="mx-auto mt-10 aspect-video w-full max-w-xl overflow-hidden rounded-2xl border border-white/[0.06]">
                 <iframe
                   src="https://www.youtube.com/embed/YGwhvfFzVVI"
-                  title="Descompliquei — Webinário 16/06"
+                  title="Descompliquei — Webinário 02/07"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="h-full w-full"
@@ -458,7 +458,7 @@ function Index() {
 
               <p className="mx-auto mt-8 max-w-md text-sm font-light leading-relaxed text-white/60 sm:text-base">
                 {name ? `${name.split(" ")[0]}, para` : "Para"} garantir sua presença na aula ao vivo no dia{" "}
-                <span className="text-white/90">16/06 — 12h</span>, entre agora no grupo exclusivo do WhatsApp — é por lá que enviaremos os avisos.
+                <span className="text-white/90">02/07 — 12h</span>, entre agora no grupo exclusivo do WhatsApp — é por lá que enviaremos os avisos.
               </p>
 
               <div className="mx-auto mt-6 inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/30 bg-[#C9A84C]/[0.06] px-4 py-2">
