@@ -6,10 +6,10 @@ import { useFadeUp } from "@/hooks/useFadeUp";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "De R$20k a R$200k — Webinar Gratuito 02/07" },
-      { name: "description", content: "Webinar exclusivo: o método comercial que ninguém te contou. 02 de Julho, 12h. Vagas limitadas." },
+      { title: "De R$20k a R$200k — Webinar Gratuito 06/07" },
+      { name: "description", content: "Webinar exclusivo: o método comercial que ninguém te contou. 06 de Julho, 12h. Vagas limitadas." },
       { property: "og:title", content: "De R$20k a R$200k — Webinar Gratuito" },
-      { property: "og:description", content: "O método comercial que ninguém te contou. 02/07 · 12h · Online" },
+      { property: "og:description", content: "O método comercial que ninguém te contou. 06/07 · 12h · Online" },
     ],
   }),
   component: Landing,
@@ -98,7 +98,7 @@ function Landing() {
       {/* Urgency bar */}
       <div className="sticky top-0 z-50 w-full bg-brand px-3 py-2 text-center font-condensed text-[12px] font-semibold uppercase tracking-wider text-white">
         <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-white align-middle" />{" "}
-        Evento Gratuito · Online · 02/07 · Quarta · 12h · Vagas Limitadas
+        Evento Gratuito · Online · 06/07 · Domingo · 12h · Vagas Limitadas
       </div>
 
       {/* Hero */}
@@ -126,7 +126,7 @@ function Landing() {
 
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {[
-            { text: "02 de Julho", indicator: "date" as const },
+            { text: "06 de Julho", indicator: "date" as const },
             { text: "12h", indicator: "pulse" as const },
             { text: "Online", indicator: "live" as const },
           ].map((p) => (

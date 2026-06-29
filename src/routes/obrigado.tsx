@@ -76,7 +76,7 @@ function Obrigado() {
       {/* Pills */}
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         {[
-          { text: "02/07", indicator: "date" as const },
+          { text: "06/07", indicator: "date" as const },
           { text: "12h", indicator: "pulse" as const },
           { text: "Online", indicator: "live" as const },
         ].map((p) => (
