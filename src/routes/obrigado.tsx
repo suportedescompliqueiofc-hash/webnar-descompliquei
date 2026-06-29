@@ -12,7 +12,7 @@ export const Route = createFileRoute("/obrigado")({
   component: Obrigado,
 });
 
-const WHATSAPP_LINK = "https://chat.whatsapp.com/IB8tkvFhj2VCr8N0Sd67Tu";
+const WHATSAPP_LINK = "https://chat.whatsapp.com/B7mqNCQmFIp7uF9fX2sdhB";
 
 function Obrigado() {
   useFadeUp();
