@@ -33,21 +33,37 @@ function maskPhone(v: string) {
 function Landing() {
   const navigate = useNavigate();
   useFadeUp();
+  const [showModal, setShowModal] = useState(false);
   const [nome, setNome] = useState("");
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
   const [especialidade, setEspecialidade] = useState("");
   const [faturamento, setFaturamento] = useState("");
-  
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setShowSticky(window.scrollY > 500);
+    const onScroll = () => setShowSticky(window.scrollY > 400);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [showModal]);
+
+  const openModal = () => {
+    setErr("");
+    setShowModal(true);
+  };
+
+  const closeModal = () => setShowModal(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -89,10 +105,6 @@ function Landing() {
     navigate({ to: "/obrigado" });
   };
 
-  const scrollToForm = () => {
-    document.getElementById("form")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <div className="relative mx-auto min-h-screen w-full max-w-[480px] bg-background pb-24 text-foreground">
       {/* Urgency bar */}
@@ -103,8 +115,6 @@ function Landing() {
 
       {/* Hero */}
       <section className="px-5 pt-7">
-
-
         <h1 className="font-display mt-5 text-center text-[44px] font-bold leading-[1.02] tracking-tight">
           Você Está <span className="text-gradient-orange">Perdendo R$40 mil por Mês</span> Sem Perceber...
         </h1>
@@ -115,14 +125,11 @@ function Landing() {
 
         <div className="mt-5 flex justify-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-brand-hot px-5 py-2.5 shadow-[0_0_30px_rgba(232,93,36,0.6)] ring-1 ring-white/20">
-
-
             <span className="font-condensed text-[16px] font-bold uppercase tracking-[0.2em] text-white">
               Sem Tráfego Pago
             </span>
           </div>
         </div>
-
 
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {[
@@ -130,8 +137,6 @@ function Landing() {
             { text: "12h", indicator: "pulse" as const },
             { text: "Online", indicator: "live" as const },
           ].map((p) => (
-
-
             <span
               key={p.text}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] text-foreground/90"
@@ -151,7 +156,6 @@ function Landing() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
               )}
               {p.text}
-
             </span>
           ))}
         </div>
@@ -167,90 +171,18 @@ function Landing() {
             73% das vagas preenchidas
           </p>
         </div>
-      </section>
 
-      {/* Form */}
-      <section id="form" className="px-5 pt-8">
-        <form
-          onSubmit={submit}
-          className="rounded-2xl border border-border bg-surface p-5"
+        {/* Hero CTA */}
+        <button
+          onClick={openModal}
+          className="glow-orange shimmer-btn mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white"
         >
-          <h2 className="font-display text-[28px] leading-none">
-            Garanta sua vaga
-          </h2>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Preenchimento rápido · Acesso imediato
-          </p>
-
-          <div className="mt-5 space-y-4">
-            <Field label="Nome e Sobrenome">
-              <input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Seu nome completo"
-                className="input-base"
-              />
-            </Field>
-
-            <Field label="WhatsApp">
-              <input
-                value={phone}
-                onChange={(e) => setPhone(maskPhone(e.target.value))}
-                placeholder="( 21 ) 98708-3498"
-                inputMode="numeric"
-                className="input-base"
-              />
-            </Field>
-
-            <RadioGroup
-              label="Especialidade"
-              options={ESPECIALIDADES}
-              value={especialidade}
-              onChange={setEspecialidade}
-            />
-
-            <RadioGroup
-              label="Faturamento Mensal"
-              options={["Até R$15k", "R$15k a R$30k", "R$30k a R$60k", "Mais de R$100k"]}
-              value={faturamento}
-              onChange={setFaturamento}
-            />
-
-            <Field label="@ do Instagram Profissional">
-              <input
-                value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
-                placeholder="@sua_clinica"
-                autoComplete="off"
-                className="input-base"
-              />
-            </Field>
-          </div>
-
-          {err && (
-            <p className="mt-4 text-[12px] text-brand">{err}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="glow-orange shimmer-btn mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white disabled:opacity-70"
-          >
-            {loading ? (
-              <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <>
-                <span className="whitespace-nowrap">Quero Garantir Minha Vaga</span>
-                <span aria-hidden="true" className="leading-none">→</span>
-              </>
-            )}
-          </button>
-
-
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            🔒 Seus dados estão seguros · Sem spam
-          </p>
-        </form>
+          <span className="whitespace-nowrap">Quero Garantir Minha Vaga</span>
+          <span aria-hidden="true" className="leading-none">→</span>
+        </button>
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          🔒 Gratuito · Sem spam
+        </p>
       </section>
 
       {/* Case section */}
@@ -325,26 +257,129 @@ function Landing() {
               ))}
             </ul>
           </div>
-
-
         </div>
       </section>
 
       {/* Sticky CTA */}
       <div
-        className={`fixed bottom-0 left-1/2 z-50 w-full max-w-[480px] -translate-x-1/2 transition-all duration-300 ${
-          showSticky ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+        className={`fixed bottom-0 left-1/2 z-40 w-full max-w-[480px] -translate-x-1/2 transition-all duration-300 ${
+          showSticky && !showModal ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
         }`}
       >
         <div className="border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
           <button
-            onClick={scrollToForm}
+            onClick={openModal}
             className="glow-orange shimmer-btn flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot py-3.5 font-condensed text-[15px] font-bold uppercase tracking-wider text-white"
           >
             Garantir minha vaga gratuita →
           </button>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeModal} />
+
+          {/* Sheet */}
+          <div className="relative z-10 w-full max-w-[480px] max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-[#111] border border-border shadow-2xl">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="h-1 w-10 rounded-full bg-white/20" />
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={closeModal}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition"
+              aria-label="Fechar"
+            >
+              ✕
+            </button>
+
+            <div className="px-5 pb-8 pt-4">
+              <h2 className="font-display text-[28px] leading-none">
+                Garanta sua vaga
+              </h2>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Preenchimento rápido · Acesso imediato
+              </p>
+
+              <form onSubmit={submit} className="mt-5 space-y-4">
+                <Field label="Nome e Sobrenome">
+                  <input
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    placeholder="Seu nome completo"
+                    className="input-base"
+                  />
+                </Field>
+
+                <Field label="WhatsApp">
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(maskPhone(e.target.value))}
+                    placeholder="( 21 ) 98708-3498"
+                    inputMode="numeric"
+                    className="input-base"
+                  />
+                </Field>
+
+                <RadioGroup
+                  label="Especialidade"
+                  options={ESPECIALIDADES}
+                  value={especialidade}
+                  onChange={setEspecialidade}
+                />
+
+                <RadioGroup
+                  label="Faturamento Mensal"
+                  options={["Até R$15k", "R$15k a R$30k", "R$30k a R$60k", "Mais de R$100k"]}
+                  value={faturamento}
+                  onChange={setFaturamento}
+                />
+
+                <Field label="@ do Instagram Profissional">
+                  <input
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    placeholder="@sua_clinica"
+                    autoComplete="off"
+                    className="input-base"
+                  />
+                </Field>
+
+                {err && (
+                  <p className="text-[12px] text-brand">{err}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="glow-orange shimmer-btn mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white disabled:opacity-70"
+                >
+                  {loading ? (
+                    <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <>
+                      <span className="whitespace-nowrap">Quero Garantir Minha Vaga</span>
+                      <span aria-hidden="true" className="leading-none">→</span>
+                    </>
+                  )}
+                </button>
+
+                <p className="text-center text-[11px] text-muted-foreground">
+                  🔒 Seus dados estão seguros · Sem spam
+                </p>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .input-base {
