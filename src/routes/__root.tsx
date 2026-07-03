@@ -129,7 +129,7 @@ function RootShell({ children }: { children: ReactNode }) {
           />
         </noscript>
         {/* Load fonts asynchronously — prevents render blocking */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.head,fs=['https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap','https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap'];fs.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;h.appendChild(l);});})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.head,fs=['https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap'];fs.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;h.appendChild(l);});})();` }} />
         {children}
         <Scripts />
       </body>
