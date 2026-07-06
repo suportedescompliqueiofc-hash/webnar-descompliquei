@@ -15,8 +15,8 @@ export const Route = createFileRoute("/agendamento")({
   component: Agendamento,
 });
 
-// Edite aqui os dias disponíveis para agendamento (formato yyyy-mm-dd)
-const AVAILABLE_DATES = ["2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14"];
+// Dias adicionais disponíveis para agendamento, além de hoje e amanhã (formato yyyy-mm-dd)
+const EXTRA_AVAILABLE_DATES = ["2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14"];
 
 // Horários disponíveis para qualquer dia habilitado acima
 const TIME_SLOTS = [
@@ -36,13 +36,30 @@ function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function addDays(d: Date, days: number) {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Um horário só é válido "hoje" se ainda não tiver passado
+function isSlotPast(dateIso: string, slotValue: string, now: Date) {
+  if (dateIso !== toISODate(now)) return false;
+  const [h, m] = slotValue.split(":").map(Number);
+  const slotTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+  return slotTime.getTime() <= now.getTime();
 }
 
 function Agendamento() {
   useFadeUp();
   const [answers, setAnswers] = useState<Array<"sim" | "nao" | null>>(QUESTIONS.map(() => null));
+  const [temSocio, setTemSocio] = useState<"sim" | "nao" | null>(null);
+  const [socioParticipa, setSocioParticipa] = useState<"sim" | "nao" | null>(null);
+  const [declineReason, setDeclineReason] = useState<"padrao" | "socio">("padrao");
   const [declined, setDeclined] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [date, setDate] = useState<Date | undefined>();
@@ -71,24 +88,45 @@ function Agendamento() {
     setAnswers((prev) => prev.map((a, i) => (i === index ? value : a)));
   };
 
-  const allAnswered = answers.every((a) => a !== null);
+  const allAnswered =
+    answers.every((a) => a !== null) &&
+    temSocio !== null &&
+    (temSocio === "nao" || socioParticipa !== null);
 
   const proceed = () => {
-    if (answers.every((a) => a === "sim")) {
-      setUnlocked(true);
-    } else {
+    if (answers.some((a) => a === "nao")) {
+      setDeclineReason("padrao");
       setDeclined(true);
+      return;
     }
+    if (temSocio === "sim" && socioParticipa === "nao") {
+      setDeclineReason("socio");
+      setDeclined(true);
+      return;
+    }
+    setUnlocked(true);
   };
 
   const restart = () => {
     setDeclined(false);
     setAnswers(QUESTIONS.map(() => null));
+    setTemSocio(null);
+    setSocioParticipa(null);
   };
+
+  const now = new Date();
+  const todayIso = toISODate(now);
+  const availableDates = Array.from(
+    new Set([
+      todayIso,
+      toISODate(addDays(now, 1)),
+      ...EXTRA_AVAILABLE_DATES.filter((iso) => iso >= todayIso),
+    ])
+  );
 
   const isDayFull = (d: Date) => {
     const iso = toISODate(d);
-    return TIME_SLOTS.every((s) => bookedSlots.has(`${iso}_${s.value}`));
+    return TIME_SLOTS.every((s) => bookedSlots.has(`${iso}_${s.value}`) || isSlotPast(iso, s.value, now));
   };
 
   const submit = async () => {
@@ -197,34 +235,30 @@ function Agendamento() {
             {QUESTIONS.map((q, i) => (
               <div key={q}>
                 <p className="text-[15px] leading-snug text-foreground/90">{q}</p>
-                <div className="mt-3 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAnswer(i, "sim")}
-                    className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border font-condensed text-[14px] font-bold uppercase tracking-wider transition ${
-                      answers[i] === "sim"
-                        ? "border-brand text-foreground"
-                        : "border-border bg-[#0f0f0f] text-foreground/70"
-                    }`}
-                    style={answers[i] === "sim" ? { background: "rgba(232,93,36,0.1)" } : undefined}
-                  >
-                    Sim
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAnswer(i, "nao")}
-                    className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border font-condensed text-[14px] font-bold uppercase tracking-wider transition ${
-                      answers[i] === "nao"
-                        ? "border-brand text-foreground"
-                        : "border-border bg-[#0f0f0f] text-foreground/70"
-                    }`}
-                    style={answers[i] === "nao" ? { background: "rgba(232,93,36,0.1)" } : undefined}
-                  >
-                    Não
-                  </button>
-                </div>
+                <YesNoToggle value={answers[i]} onChange={(v) => setAnswer(i, v)} />
               </div>
             ))}
+
+            <div>
+              <p className="text-[15px] leading-snug text-foreground/90">
+                Seu negócio tem sócio(s)?
+              </p>
+              <YesNoToggle value={temSocio} onChange={setTemSocio} />
+            </div>
+
+            {temSocio === "sim" && (
+              <div className="rounded-xl border border-brand/40 bg-brand/5 p-4">
+                <p className="text-[13px] leading-snug text-foreground/85">
+                  <strong className="text-brand">Atenção:</strong> como essa consultoria trata de
+                  decisões estratégicas do negócio, é obrigatório que seu(s) sócio(s) também
+                  participem da chamada.
+                </p>
+                <p className="mt-3 text-[14px] font-semibold text-foreground/90">
+                  Seu(s) sócio(s) poderá(ão) participar com você?
+                </p>
+                <YesNoToggle value={socioParticipa} onChange={setSocioParticipa} />
+              </div>
+            )}
           </div>
 
           <button
@@ -242,8 +276,9 @@ function Agendamento() {
       {declined && (
         <div className="mt-8 rounded-2xl border border-border bg-surface p-5 text-center">
           <p className="text-[15px] text-foreground/85">
-            Essa consultoria é pensada para quem já decidiu crescer e tem esse tempo disponível.
-            Sem problemas — quando fizer sentido pra você, volte aqui.
+            {declineReason === "socio"
+              ? "Essa consultoria envolve decisões estratégicas que precisam do alinhamento de todos os sócios. Assim que puder contar com a presença dele(s) na chamada, volte para agendar."
+              : "Essa consultoria é pensada para quem já decidiu crescer e tem esse tempo disponível. Sem problemas — quando fizer sentido pra você, volte aqui."}
           </p>
           <button
             type="button"
@@ -270,48 +305,58 @@ function Agendamento() {
                   setTime("");
                   setSlotError("");
                 }}
-                disabled={(d) => !AVAILABLE_DATES.includes(toISODate(d)) || isDayFull(d)}
-                defaultMonth={new Date(`${AVAILABLE_DATES[0]}T00:00:00`)}
+                disabled={(d) => !availableDates.includes(toISODate(d)) || isDayFull(d)}
+                defaultMonth={now}
                 className="text-base [--cell-size:3rem]"
               />
             </div>
           </div>
 
           {/* Horários */}
-          {date && (
-            <div className="mt-6">
-              <h4 className="font-display text-[22px]">Escolha o horário</h4>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {TIME_SLOTS.map((s) => {
-                  const slotKey = `${toISODate(date)}_${s.value}`;
-                  const booked = bookedSlots.has(slotKey);
-                  const active = time === s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      disabled={booked}
-                      onClick={() => {
-                        setTime(s.value);
-                        setSlotError("");
-                      }}
-                      className={`rounded-xl border px-3 py-3 text-[15px] transition ${
-                        booked
-                          ? "cursor-not-allowed border-border bg-[#0f0f0f] text-muted-foreground/50 line-through"
-                          : active
-                            ? "cursor-pointer border-brand text-foreground"
-                            : "cursor-pointer border-border bg-[#0f0f0f] text-foreground/80"
-                      }`}
-                      style={active && !booked ? { background: "rgba(232,93,36,0.07)" } : undefined}
-                    >
-                      {s.label}
-                      {booked && <span className="ml-1 text-[10px] no-underline">(ocupado)</span>}
-                    </button>
-                  );
-                })}
+          {date && (() => {
+            const iso = toISODate(date);
+            const visibleSlots = TIME_SLOTS.filter((s) => !isSlotPast(iso, s.value, now));
+            return (
+              <div className="mt-6">
+                <h4 className="font-display text-[22px]">Escolha o horário</h4>
+                {visibleSlots.length === 0 ? (
+                  <p className="mt-3 text-[13px] text-muted-foreground">
+                    Não há mais horários disponíveis hoje. Escolha outro dia.
+                  </p>
+                ) : (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {visibleSlots.map((s) => {
+                      const slotKey = `${iso}_${s.value}`;
+                      const booked = bookedSlots.has(slotKey);
+                      const active = time === s.value;
+                      return (
+                        <button
+                          key={s.value}
+                          type="button"
+                          disabled={booked}
+                          onClick={() => {
+                            setTime(s.value);
+                            setSlotError("");
+                          }}
+                          className={`rounded-xl border px-3 py-3 text-[15px] transition ${
+                            booked
+                              ? "cursor-not-allowed border-border bg-[#0f0f0f] text-muted-foreground/50 line-through"
+                              : active
+                                ? "cursor-pointer border-brand text-foreground"
+                                : "cursor-pointer border-border bg-[#0f0f0f] text-foreground/80"
+                          }`}
+                          style={active && !booked ? { background: "rgba(232,93,36,0.07)" } : undefined}
+                        >
+                          {s.label}
+                          {booked && <span className="ml-1 text-[10px] no-underline">(ocupado)</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {slotError && (
             <p className="mt-3 text-center text-[12px] text-brand">{slotError}</p>
@@ -336,6 +381,39 @@ function Agendamento() {
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+function YesNoToggle({
+  value,
+  onChange,
+}: {
+  value: "sim" | "nao" | null;
+  onChange: (v: "sim" | "nao") => void;
+}) {
+  return (
+    <div className="mt-3 flex gap-3">
+      <button
+        type="button"
+        onClick={() => onChange("sim")}
+        className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border font-condensed text-[14px] font-bold uppercase tracking-wider transition ${
+          value === "sim" ? "border-brand text-foreground" : "border-border bg-[#0f0f0f] text-foreground/70"
+        }`}
+        style={value === "sim" ? { background: "rgba(232,93,36,0.1)" } : undefined}
+      >
+        Sim
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("nao")}
+        className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border font-condensed text-[14px] font-bold uppercase tracking-wider transition ${
+          value === "nao" ? "border-brand text-foreground" : "border-border bg-[#0f0f0f] text-foreground/70"
+        }`}
+        style={value === "nao" ? { background: "rgba(232,93,36,0.1)" } : undefined}
+      >
+        Não
+      </button>
     </div>
   );
 }
