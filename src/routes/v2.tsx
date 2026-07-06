@@ -83,7 +83,7 @@ function Landing() {
     setLoading(true);
 
     try {
-      await fetch("https://webhook.orbevision.shop/webhook/webnar-1", {
+      await fetch("https://webhook.orbevision.shop/webhook/lp-v2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ function Landing() {
         {/* Hero CTA */}
         <button
           onClick={openModal}
-          className="glow-orange shimmer-btn mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white"
+          className="glow-orange shimmer-btn mt-7 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white"
         >
           <span className="whitespace-nowrap">Falar com Especialista</span>
           <span aria-hidden="true" className="leading-none">→</span>
@@ -246,7 +246,7 @@ function Landing() {
         <div className="border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
           <button
             onClick={openModal}
-            className="glow-orange shimmer-btn flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot py-3.5 font-condensed text-[15px] font-bold uppercase tracking-wider text-white"
+            className="glow-orange shimmer-btn flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot py-3.5 font-condensed text-[15px] font-bold uppercase tracking-wider text-white"
           >
             Garantir minha vaga gratuita →
           </button>
@@ -272,7 +272,7 @@ function Landing() {
             {/* Close button */}
             <button
               onClick={closeModal}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition"
+              className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition"
               aria-label="Fechar"
             >
               ✕
@@ -337,7 +337,7 @@ function Landing() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="glow-orange shimmer-btn mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white disabled:opacity-70"
+                  className="glow-orange shimmer-btn mt-2 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-hot px-4 font-condensed text-[16px] font-bold uppercase leading-none tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
                     <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -415,7 +415,7 @@ function RadioGroup({
               type="button"
               key={opt}
               onClick={() => onChange(opt)}
-              className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-[14px] transition ${
+              className={`flex w-full cursor-pointer items-center justify-between rounded-xl border px-4 py-3 text-left text-[14px] transition ${
                 active
                   ? "border-brand text-foreground"
                   : "border-border bg-[#0f0f0f] text-foreground/80"
