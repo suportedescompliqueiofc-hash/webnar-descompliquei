@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garanta Sua Análise Estratégica — Descompliquei Growth Company</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+
+/* ======================================================
+   RESET
+   ====================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+img, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ======================================================
+   DESIGN TOKENS
+   ====================================================== */
+:root{
+  --bg: #090909;
+  --bg-alt: #111111;
+  --bg-card: #141414;
+  --accent: #E85D24;
+  --accent-dim: #b8481c;
+  --accent-glow: rgba(232, 93, 36, 0.35);
+  --text-primary: #F4F4F4;
+  --text-secondary: #777777;
+  --hairline: rgba(244, 244, 244, 0.09);
+  --hairline-strong: rgba(244, 244, 244, 0.16);
+  --error: #ff6f6f;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --max-w: 1080px;
+}
+
+::selection { background: var(--accent); color: #fff; }
+
+body{
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* film-grain / noise atmosphere, no external image */
+body::before{
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.eyebrow{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.eyebrow::before{
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+}
+
+section{ position: relative; z-index: 2; }
+
+/* ======================================================
+   SEÇÃO: HERO
+   ====================================================== */
+.hero{
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-glow{
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 900px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 65%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+  animation: glow-breathe 8s ease-in-out infinite;
+}
+@keyframes glow-breathe{
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
+.hero > *:not(.hero-glow) { position: relative; z-index: 1; }
+
+.badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: badge-pulse 2.4s ease-in-out infinite;
+  opacity: 0;
+  animation: reveal-up 0.7s ease forwards, badge-pulse 2.4s ease-in-out 0.7s infinite;
+}
+@keyframes badge-pulse{
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 24px 6px var(--accent-glow); }
+}
+.badge .dot{ animation: dot-blink 1.6s ease-in-out infinite; }
+@keyframes dot-blink{
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.headline{
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: clamp(2.6rem, 8.6vw, 6.2rem);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  max-width: 16ch;
+  margin: 28px 0 22px;
+  opacity: 0;
+  animation: reveal-up 0.8s ease 0.15s forwards;
+}
+.headline em{
+  font-style: normal;
+  color: var(--accent);
+}
+
+.subheadline{
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--text-secondary);
+  max-width: 46ch;
+  margin: 0 auto 48px;
+  opacity: 0;
+  animation: reveal-up 0.8s ease 0.3s forwards;
+}
+
+@keyframes reveal-up{
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- vagas widget --- */
+.vagas-widget{
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(180deg, rgba(244,244,244,0.03), rgba(244,244,244,0.01));
+  border: 1px solid var(--hairline-strong);
+  border-radius: 18px;
+  padding: 32px 28px 28px;
+  opacity: 0;
+  animation: reveal-up 0.8s ease 0.45s forwards;
+}
+
+.vagas-warning{
+  font-size: 1.05rem;
+  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vagas-number{
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.6rem;
+  color: var(--accent);
+  min-width: 1.2ch;
+  line-height: 1;
+}
+.vagas-number.flip{ animation: number-flip 0.5s ease; }
+@keyframes number-flip{
+  0% { transform: translateY(-14px) rotateX(70deg); opacity: 0; }
+  60% { transform: translateY(2px) rotateX(0deg); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.vagas-sub{
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
+
+.progress-bar-container{
+  width: 100%;
+  height: 8px;
+  background: rgba(244,244,244,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 22px;
+}
+.progress-bar-fill{
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  border-radius: 999px;
+  width: 30%;
+  transition: width 0.9s cubic-bezier(.4,0,.2,1);
+}
+.progress-label{
+  text-align: center;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  letter-spacing: 0.02em;
+}
+
+.cta-scroll{
+  display: inline-block;
+  margin-top: 40px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--hairline-strong);
+  padding-bottom: 4px;
+  opacity: 0;
+  animation: reveal-up 0.8s ease 0.6s forwards;
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+.cta-scroll:hover{ border-color: var(--accent); color: var(--accent); }
+
+/* ======================================================
+   SEÇÃO: TÍTULOS DE SEÇÃO (reutilizado no agendamento)
+   ====================================================== */
+.section-header{ text-align: center; margin-bottom: 56px; }
+.section-title{
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1;
+}
+
+/* ======================================================
+   SEÇÃO: AGENDAMENTO (CALENDÁRIO + HORÁRIOS + FORM)
+   ====================================================== */
+.booking-section{
+  padding: 110px 24px 140px;
+}
+.booking-inner{ max-width: 720px; margin: 0 auto; }
+
+.calendar-wrapper{
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 20px;
+  padding: 32px;
+}
+.calendar-header{
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 24px;
+}
+.calendar-weekdays{
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.calendar-weekdays span{
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+}
+.calendar-grid{
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.day-cell{
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  user-select: none;
+}
+.day-cell.empty{ visibility: hidden; }
+.day-cell.past{ opacity: 0.3; color: var(--text-secondary); }
+.day-cell.disabled{
+  background: rgba(244,244,244,0.02);
+  color: var(--text-secondary);
+  opacity: 0.4;
+}
+.day-cell.available{
+  background: #1a1a1a;
+  border: 1px solid var(--accent);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.day-cell.available:hover{ background: var(--accent); transform: translateY(-2px); }
+.day-cell.selected{
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+.day-cell.today-marker{ position: relative; }
+.day-cell.today-marker::after{
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.legend{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+  margin-top: 24px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.legend-item{ display: flex; align-items: center; gap: 6px; }
+.legend-swatch{ width: 12px; height: 12px; border-radius: 4px; }
+.legend-swatch.available{ background: #1a1a1a; border: 1px solid var(--accent); }
+.legend-swatch.disabled{ background: rgba(244,244,244,0.06); }
+
+/* horarios */
+.horarios-wrapper{
+  margin-top: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 20px;
+  padding: 28px 32px;
+  animation: slide-down 0.5s ease;
+}
+@keyframes slide-down{
+  from { opacity: 0; transform: translateY(-14px); max-height: 0; }
+  to { opacity: 1; transform: translateY(0); max-height: 400px; }
+}
+.horarios-title{
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.horarios-grid{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.horario-chip{
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+.horario-chip:hover{ border-color: var(--accent); }
+.horario-chip.selected{
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* perguntas de qualificação */
+.qualify-wrapper{
+  margin-top: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 20px;
+  padding: 28px 32px;
+  animation: slide-down 0.5s ease;
+}
+.qualify-title{
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+}
+.qualify-question{ margin-bottom: 20px; }
+.qualify-question:last-of-type{ margin-bottom: 0; }
+.qualify-text{
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.qualify-options{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.qualify-warning{
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+/* form */
+.form-wrapper{
+  margin-top: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 20px;
+  padding: 36px 32px;
+  animation: slide-down 0.55s ease;
+}
+.form-title{
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+}
+.form-subtitle{
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+.form-subtitle strong{ color: var(--accent); }
+
+.field{ margin-bottom: 20px; }
+.field label{
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.field label .req{ color: var(--accent); }
+.field input,
+.field select,
+.field textarea{
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-primary);
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 0.98rem;
+  transition: border-color 0.2s ease;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  outline: none;
+  border-color: var(--accent);
+}
+.field select{
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+.field-error{
+  display: none;
+  color: var(--error);
+  font-size: 0.78rem;
+  margin-top: 6px;
+}
+.field.invalid input,
+.field.invalid select{ border-color: var(--error); }
+.field.invalid .field-error{ display: block; }
+
+.submit-btn{
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 18px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  position: relative;
+}
+.submit-btn:hover:not(:disabled){
+  transform: scale(1.015);
+  box-shadow: 0 8px 30px -6px var(--accent-glow);
+}
+.submit-btn:disabled{ opacity: 0.7; cursor: wait; }
+.spinner{
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 8px;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin{ to { transform: rotate(360deg); } }
+
+.trust-footer{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.trust-footer span{ display: flex; align-items: center; gap: 6px; }
+
+/* confirmation */
+.confirmation-wrapper{
+  margin-top: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 20px;
+  padding: 60px 36px;
+  text-align: center;
+  animation: slide-down 0.6s ease;
+}
+.confirmation-check{
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 28px;
+  color: var(--accent);
+  animation: check-pop 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes check-pop{
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.confirmation-title{
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  margin-bottom: 18px;
+}
+.confirmation-text{
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 44ch;
+  margin: 0 auto 8px;
+}
+.confirmation-text strong{ color: var(--text-primary); }
+.confirmation-note{
+  margin-top: 28px;
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ======================================================
+   TOAST — social proof
+   ====================================================== */
+.toast-container{
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast{
+  background: #1a1a1a;
+  border: 1px solid var(--hairline-strong);
+  border-left: 3px solid var(--accent);
+  color: var(--text-primary);
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  max-width: 280px;
+  box-shadow: 0 12px 30px -8px rgba(0,0,0,0.6);
+  animation: toast-in 0.4s ease;
+}
+.toast.fade-out{ animation: toast-out 0.4s ease forwards; }
+@keyframes toast-in{
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out{
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-20px); }
+}
+
+/* ======================================================
+   RESPONSIVE
+   ====================================================== */
+@media (max-width: 480px){
+  .hero{ padding: 100px 18px 60px; }
+  .vagas-widget{ padding: 24px 18px 20px; }
+  .vagas-number{ font-size: 2.1rem; }
+  .calendar-wrapper, .qualify-wrapper, .horarios-wrapper, .form-wrapper, .confirmation-wrapper{ padding: 20px 16px; }
+  .day-cell{ font-size: 0.78rem; border-radius: 8px; }
+  .calendar-grid, .calendar-weekdays{ gap: 4px; }
+  .horario-chip{ padding: 10px 14px; font-size: 0.88rem; }
+  .toast-container{ left: 12px; right: 12px; bottom: 12px; }
+  .toast{ max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ======================================================
+     SEÇÃO: HERO
+     ====================================================== -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <span class="badge"><span class="dot">🔴</span> AO VIVO — Vagas sendo preenchidas agora</span>
+
+  <h1 class="headline">GARANTA SUA <em>ANÁLISE ESTRATÉGICA</em> AGORA</h1>
+
+  <p class="subheadline">Sessão individual com nosso estrategista — disponível apenas para quem assistiu ao webinário de hoje.</p>
+
+  <div class="vagas-widget">
+    <div class="vagas-warning">
+      ⚠️ Restam apenas <span id="vagasCount" class="vagas-number">7</span> vagas disponíveis
+    </div>
+    <div class="vagas-sub">Pessoas agendando agora</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">30% das vagas preenchidas</div>
+  </div>
+
+  <a href="#calendario" class="cta-scroll">Escolher meu horário ↓</a>
+</section>
+
+<!-- ======================================================
+     SEÇÃO: CALENDÁRIO / HORÁRIOS / FORMULÁRIO / CONFIRMAÇÃO
+     ====================================================== -->
+<section class="booking-section" id="calendario">
+  <div class="booking-inner">
+    <div class="section-header">
+      <div class="eyebrow" style="justify-content:center; width:100%;">Vagas limitadas</div>
+      <h2 class="section-title">Escolha Sua Data e Horário</h2>
+    </div>
+
+    <div class="calendar-wrapper">
+      <div class="calendar-header" id="monthLabel"></div>
+      <div class="calendar-weekdays">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-swatch available"></span>Disponível</span>
+        <span class="legend-item"><span class="legend-swatch disabled"></span>Sem vaga</span>
+      </div>
+    </div>
+
+    <div class="qualify-wrapper" id="qualifyWrapper" style="display:none;">
+      <div class="qualify-title">Antes de escolher o horário, responda rapidamente:</div>
+
+      <div class="qualify-question">
+        <div class="qualify-text">1. É uma prioridade dobrar seu faturamento em até 60 dias?</div>
+        <div class="qualify-options">
+          <button type="button" class="horario-chip qualify-chip" data-question="q1" data-value="sim">Sim</button>
+          <button type="button" class="horario-chip qualify-chip" data-question="q1" data-value="nao">Não</button>
+        </div>
+      </div>
+
+      <div class="qualify-question">
+        <div class="qualify-text">2. A sessão dura até 1h30. Você teria esse tempo disponível?</div>
+        <div class="qualify-options">
+          <button type="button" class="horario-chip qualify-chip" data-question="q2" data-value="sim">Sim</button>
+          <button type="button" class="horario-chip qualify-chip" data-question="q2" data-value="nao">Não</button>
+        </div>
+      </div>
+
+      <div class="qualify-warning" id="qualifyWarning" style="display:none;">
+        Essa Análise Estratégica é feita para quem já decidiu priorizar o crescimento agora e pode se dedicar à sessão completa. Fique à vontade para revisar suas respostas acima.
+      </div>
+    </div>
+
+    <div class="horarios-wrapper" id="horariosWrapper" style="display:none;">
+      <div class="horarios-title">Horários disponíveis — <span id="selectedDateLabel"></span></div>
+      <div class="horarios-grid" id="horariosGrid"></div>
+    </div>
+
+    <div class="form-wrapper" id="formWrapper" style="display:none;">
+      <div class="form-title">Confirme seus dados</div>
+      <div class="form-subtitle">Sua análise está pré-reservada para <strong id="formDateTimeLabel"></strong></div>
+
+      <form id="bookingForm" novalidate>
+        <div class="field" id="field-nome">
+          <label for="nome">Nome completo <span class="req">*</span></label>
+          <input type="text" id="nome" name="nome" autocomplete="name" placeholder="Seu nome completo">
+          <div class="field-error">Por favor, informe seu nome completo.</div>
+        </div>
+
+        <div class="field" id="field-whatsapp">
+          <label for="whatsapp">WhatsApp <span class="req">*</span></label>
+          <input type="tel" id="whatsapp" name="whatsapp" inputmode="numeric" autocomplete="tel" placeholder="(00) 00000-0000" maxlength="15">
+          <div class="field-error">Informe um WhatsApp válido com DDD.</div>
+        </div>
+
+        <div class="field" id="field-especialidade">
+          <label for="especialidade">Especialidade</label>
+          <select id="especialidade" name="especialidade">
+            <option value="">Selecione</option>
+            <option value="Harmonização Facial">Harmonização Facial</option>
+            <option value="Odontologia Estética">Odontologia Estética</option>
+            <option value="Medicina Estética">Medicina Estética</option>
+            <option value="Outra">Outra</option>
+          </select>
+        </div>
+
+        <div class="field" id="field-faturamento">
+          <label for="faturamento">Faturamento mensal atual</label>
+          <select id="faturamento" name="faturamento">
+            <option value="">Selecione</option>
+            <option value="Até R$20k">Até R$20k</option>
+            <option value="R$20k–R$50k">R$20k–R$50k</option>
+            <option value="R$50k–R$100k">R$50k–R$100k</option>
+            <option value="Acima de R$100k">Acima de R$100k</option>
+          </select>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Confirmar minha análise estratégica →</button>
+      </form>
+
+      <div class="trust-footer">
+        <span>🔒 Dados protegidos</span>
+        <span>✅ Confirmação por WhatsApp em até 10 min</span>
+        <span>⏱️ Sessão de até 1h30</span>
+      </div>
+    </div>
+
+    <div class="confirmation-wrapper" id="confirmationWrapper" style="display:none;">
+      <div class="confirmation-check">✅</div>
+      <div class="confirmation-title">Seu agendamento está confirmado</div>
+      <p class="confirmation-text"><strong id="confNome"></strong>, sua Análise Estratégica está reservada para <strong id="confDataHora"></strong>.</p>
+      <p class="confirmation-text">Em até 10 minutos você receberá uma mensagem no WhatsApp com todos os detalhes.</p>
+      <div class="confirmation-note">Fique atento ao seu WhatsApp 📲</div>
+    </div>
+  </div>
+</section>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ======================================================
+   EDITE AQUI — CONFIGURAÇÃO DE DATAS E HORÁRIOS
+   Substitua pelas datas reais antes de publicar.
+   Formato: "AAAA-MM-DD"
+   ====================================================== */
+const DATAS_ABERTAS = [
+  "2026-07-06",
+  "2026-07-07",
+  "2026-07-08",
+  "2026-07-09"
+];
+
+const HORARIOS_POR_DATA = {
+  "2026-07-06": ["14:00", "19:00", "21:00"],
+  "2026-07-07": ["09:00", "13:00", "17:00"],
+  "2026-07-08": ["09:00", "11:00", "16:00"],
+  "2026-07-09": ["10:00", "15:00", "18:00"]
+};
+
+/* EDITE AQUI — nomes usados na simulação de social proof (toasts) */
+const NOMES_SOCIAL_PROOF = [
+  "Dra. Camila (SP) acabou de agendar",
+  "Dr. Rafael (RJ) garantiu sua vaga",
+  "Dra. Ana Paula (MG) acabou de confirmar",
+  "Dr. Bruno (PR) acabou de agendar",
+  "Dra. Larissa (BA) garantiu sua vaga",
+  "Dr. Thiago (SC) acabou de confirmar"
+];
+
+/* EDITE AQUI — total de vagas do lote (usado para calcular a barra de progresso) */
+const TOTAL_VAGAS = 10;
+const VAGAS_MINIMO = 3;
+
+/* ======================================================
+   ESTADO GERAL
+   ====================================================== */
+let vagasRestantes = 7;
+let dataSelecionada = null;
+let horarioSelecionado = null;
+let respostaQ1 = null;
+let respostaQ2 = null;
+
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const DIAS_SEMANA_LONGO = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+
+function pad(n){ return String(n).padStart(2, "0"); }
+function toISODate(y, m, d){ return `${y}-${pad(m+1)}-${pad(d)}`; }
+
+/* ======================================================
+   SEÇÃO: VAGAS — contador dinâmico + barra de progresso
+   ====================================================== */
+function atualizarVagasUI(){
+  const el = document.getElementById("vagasCount");
+  el.textContent = vagasRestantes;
+  el.classList.remove("flip");
+  void el.offsetWidth;
+  el.classList.add("flip");
+
+  const preenchidas = TOTAL_VAGAS - vagasRestantes;
+  const pct = Math.min(100, Math.round((preenchidas / TOTAL_VAGAS) * 100));
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressLabel").textContent = `${pct}% das vagas preenchidas`;
+}
+
+function agendarProximaReducaoDeVagas(){
+  if (vagasRestantes <= VAGAS_MINIMO) return;
+  const intervalo = 45000 + Math.random() * (180000 - 45000); // 45s a 3min
+  setTimeout(() => {
+    if (vagasRestantes > VAGAS_MINIMO){
+      vagasRestantes -= 1;
+      atualizarVagasUI();
+    }
+    agendarProximaReducaoDeVagas();
+  }, intervalo);
+}
+
+/* ======================================================
+   SEÇÃO: TOAST — social proof em tempo real
+   ====================================================== */
+function mostrarToast(){
+  const container = document.getElementById("toastContainer");
+  const mensagem = NOMES_SOCIAL_PROOF[Math.floor(Math.random() * NOMES_SOCIAL_PROOF.length)];
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = mensagem;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("fade-out");
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+function agendarProximoToast(){
+  const intervalo = 30000 + Math.random() * (90000 - 30000); // 30s a 90s
+  setTimeout(() => {
+    mostrarToast();
+    agendarProximoToast();
+  }, intervalo);
+}
+
+/* ======================================================
+   SEÇÃO: CALENDÁRIO
+   ====================================================== */
+function renderCalendario(){
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth();
+
+  document.getElementById("monthLabel").textContent = `${MESES[mes]} ${ano}`;
+
+  const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+
+  const grid = document.getElementById("calendarGrid");
+  grid.innerHTML = "";
+
+  for (let i = 0; i < primeiroDiaSemana; i++){
+    const empty = document.createElement("div");
+    empty.className = "day-cell empty";
+    grid.appendChild(empty);
+  }
+
+  for (let dia = 1; dia <= ultimoDia; dia++){
+    const cellDate = new Date(ano, mes, dia);
+    cellDate.setHours(0,0,0,0);
+    const iso = toISODate(ano, mes, dia);
+
+    const cell = document.createElement("div");
+    cell.textContent = dia;
+    cell.className = "day-cell";
+    cell.dataset.date = iso;
+
+    if (cellDate.getTime() === hoje.getTime()){
+      cell.classList.add("today-marker");
+    }
+
+    if (cellDate < hoje){
+      cell.classList.add("past");
+    } else if (DATAS_ABERTAS.includes(iso)){
+      cell.classList.add("available");
+      cell.addEventListener("click", () => selecionarData(iso, cell));
+    } else {
+      cell.classList.add("disabled");
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function selecionarData(iso, cellEl){
+  document.querySelectorAll(".day-cell.selected").forEach(el => el.classList.remove("selected"));
+  cellEl.classList.add("selected");
+  dataSelecionada = iso;
+  horarioSelecionado = null;
+
+  const [y, m, d] = iso.split("-").map(Number);
+  const dataObj = new Date(y, m - 1, d);
+  document.getElementById("selectedDateLabel").textContent =
+    `${DIAS_SEMANA_LONGO[dataObj.getDay()]}, ${d} de ${MESES[m - 1]}`;
+
+  document.getElementById("horariosWrapper").style.display = "none";
+  document.getElementById("formWrapper").style.display = "none";
+
+  resetarQualificacao();
+
+  const qualifyWrapper = document.getElementById("qualifyWrapper");
+  qualifyWrapper.style.display = "block";
+  setTimeout(() => qualifyWrapper.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+}
+
+/* ======================================================
+   SEÇÃO: PERGUNTAS DE QUALIFICAÇÃO
+   ====================================================== */
+function resetarQualificacao(){
+  respostaQ1 = null;
+  respostaQ2 = null;
+  document.querySelectorAll(".qualify-chip.selected").forEach(el => el.classList.remove("selected"));
+  document.getElementById("qualifyWarning").style.display = "none";
+}
+
+function selecionarResposta(pergunta, valor, botaoEl){
+  document.querySelectorAll(`.qualify-chip[data-question="${pergunta}"]`).forEach(el => el.classList.remove("selected"));
+  botaoEl.classList.add("selected");
+
+  if (pergunta === "q1") respostaQ1 = valor;
+  else respostaQ2 = valor;
+
+  avaliarQualificacao();
+}
+
+function avaliarQualificacao(){
+  const warning = document.getElementById("qualifyWarning");
+  const horariosWrapper = document.getElementById("horariosWrapper");
+
+  if (respostaQ1 === "sim" && respostaQ2 === "sim"){
+    warning.style.display = "none";
+    renderHorarios(dataSelecionada);
+    horariosWrapper.style.display = "block";
+    setTimeout(() => horariosWrapper.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    return;
+  }
+
+  horariosWrapper.style.display = "none";
+  document.getElementById("formWrapper").style.display = "none";
+  warning.style.display = (respostaQ1 !== null && respostaQ2 !== null) ? "block" : "none";
+}
+
+function initQualificacao(){
+  document.querySelectorAll(".qualify-chip").forEach(botao => {
+    botao.addEventListener("click", () => {
+      selecionarResposta(botao.dataset.question, botao.dataset.value, botao);
+    });
+  });
+}
+
+function renderHorarios(iso){
+  const grid = document.getElementById("horariosGrid");
+  grid.innerHTML = "";
+  const horarios = HORARIOS_POR_DATA[iso] || [];
+
+  horarios.forEach(hora => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "horario-chip";
+    chip.textContent = hora;
+    chip.addEventListener("click", () => selecionarHorario(hora, chip));
+    grid.appendChild(chip);
+  });
+}
+
+function selecionarHorario(hora, chipEl){
+  document.querySelectorAll(".horario-chip.selected").forEach(el => el.classList.remove("selected"));
+  chipEl.classList.add("selected");
+  horarioSelecionado = hora;
+
+  const [y, m, d] = dataSelecionada.split("-").map(Number);
+  const dataObj = new Date(y, m - 1, d);
+  const label = `${DIAS_SEMANA_LONGO[dataObj.getDay()]}, ${d} de ${MESES[m - 1]} às ${hora}`;
+  document.getElementById("formDateTimeLabel").textContent = label;
+
+  const formWrapper = document.getElementById("formWrapper");
+  formWrapper.style.display = "block";
+  setTimeout(() => formWrapper.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+}
+
+/* ======================================================
+   SEÇÃO: FORMULÁRIO — máscara, validação, envio
+   ====================================================== */
+function aplicarMascaraWhatsapp(valor){
+  let digitos = valor.replace(/\D/g, "").slice(0, 11);
+  if (digitos.length === 0) return "";
+  if (digitos.length <= 2) return `(${digitos}`;
+  if (digitos.length <= 7) return `(${digitos.slice(0,2)}) ${digitos.slice(2)}`;
+  return `(${digitos.slice(0,2)}) ${digitos.slice(2,7)}-${digitos.slice(7)}`;
+}
+
+function initFormulario(){
+  const whatsappInput = document.getElementById("whatsapp");
+  whatsappInput.addEventListener("input", (e) => {
+    e.target.value = aplicarMascaraWhatsapp(e.target.value);
+  });
+
+  document.querySelectorAll(".field input, .field select").forEach(el => {
+    el.addEventListener("input", () => {
+      el.closest(".field").classList.remove("invalid");
+    });
+  });
+
+  document.getElementById("bookingForm").addEventListener("submit", handleSubmit);
+}
+
+function validarFormulario(){
+  let valido = true;
+
+  const nome = document.getElementById("nome");
+  if (nome.value.trim().length < 3){
+    document.getElementById("field-nome").classList.add("invalid");
+    valido = false;
+  }
+
+  const whatsapp = document.getElementById("whatsapp");
+  const digitos = whatsapp.value.replace(/\D/g, "");
+  if (digitos.length < 10){
+    document.getElementById("field-whatsapp").classList.add("invalid");
+    valido = false;
+  }
+
+  return valido;
+}
+
+function handleSubmit(e){
+  e.preventDefault();
+
+  if (!validarFormulario()) return;
+
+  const btn = document.getElementById("submitBtn");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Confirmando...';
+
+  const formData = {
+    nome: document.getElementById("nome").value.trim(),
+    whatsapp: document.getElementById("whatsapp").value.trim(),
+    especialidade: document.getElementById("especialidade").value,
+    faturamento: document.getElementById("faturamento").value,
+    data: dataSelecionada,
+    horario: horarioSelecionado
+  };
+
+  setTimeout(() => {
+    console.log("Novo agendamento:", formData);
+    mostrarConfirmacao(formData);
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }, 2000);
+}
+
+function mostrarConfirmacao(formData){
+  document.getElementById("formWrapper").style.display = "none";
+  document.getElementById("horariosWrapper").style.display = "none";
+
+  const [y, m, d] = formData.data.split("-").map(Number);
+  const dataObj = new Date(y, m - 1, d);
+  const dataHoraLabel = `${DIAS_SEMANA_LONGO[dataObj.getDay()]}, ${d} de ${MESES[m - 1]} às ${formData.horario}`;
+
+  document.getElementById("confNome").textContent = formData.nome.split(" ")[0];
+  document.getElementById("confDataHora").textContent = dataHoraLabel;
+
+  const conf = document.getElementById("confirmationWrapper");
+  conf.style.display = "block";
+  setTimeout(() => conf.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+}
+
+/* ======================================================
+   INIT
+   ====================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+  atualizarVagasUI();
+  agendarProximaReducaoDeVagas();
+  agendarProximoToast();
+  renderCalendario();
+  initQualificacao();
+  initFormulario();
+});
+</script>
+</body>
+</html>
