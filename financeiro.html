@@ -67,6 +67,8 @@ h2.sec{font-size:13px;margin:0 0 12px;color:var(--mut);font-weight:700;text-tran
 .chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
 .preview{margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--card2);font-size:13px;color:var(--mut);min-height:38px}
 .preview b{color:var(--tx)}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tx);margin:0;cursor:pointer}
+.chk input{width:auto}
 .modebox{display:none;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
 .modebox select{width:auto;padding:6px 8px}
 
@@ -111,6 +113,23 @@ td small,.sm{color:var(--mut);font-size:12px}
 .sub-h{font-size:12px;color:var(--mut);margin:18px 0 0;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .sub-h:first-child{margin-top:0}
 
+.bh{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end}
+.bh .big{font-size:32px;font-weight:800;letter-spacing:-.02em}
+.prog{height:12px;border-radius:99px;background:var(--card2);overflow:hidden;margin:12px 0 6px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--pos),#6ee7b7);border-radius:99px;transition:width .4s}
+.bill{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:11px 4px;border-bottom:1px solid var(--bd)}
+.bill:last-child{border-bottom:none}
+.bill .ck{width:30px;height:30px;border-radius:9px;border:2px solid var(--mut);background:none;padding:0;display:grid;place-items:center;font-size:17px;color:transparent}
+.bill .ck:hover{border-color:var(--pos)}
+.bill.done .ck{background:var(--pos);border-color:var(--pos);color:#04251a}
+.bill.done .nm,.bill.done .vl{text-decoration:line-through;opacity:.5}
+.bill.done{opacity:.75}
+.bill .nm{font-weight:600}
+.bill .vl{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.due{font-size:12px;color:var(--mut)}
+.due.late{color:var(--neg);font-weight:700}.due.today{color:var(--warn);font-weight:700}
+.bill.lateb{background:color-mix(in srgb,var(--neg) 8%,transparent);border-radius:10px}
+@media(max-width:600px){.bill{grid-template-columns:auto 1fr auto}.bill .acts{display:none}}
 .pc{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}
 .pc b{width:24px;height:24px;border-radius:7px;font-size:10px;display:grid;place-items:center;font-weight:700;color:var(--mut);background:var(--card2);border:1px solid var(--bd)}
 .pc b.ok{background:var(--pos);border-color:var(--pos);color:#04251a}
@@ -161,6 +180,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
       <select id="qcat" style="width:auto"></select>
       <input id="qdate" type="date" style="width:auto">
       <span class="chip" data-d="today">Hoje</span><span class="chip" data-d="yest">Ontem</span>
+      <label class="chk"><input type="checkbox" id="qbill"> 📌 Conta a pagar (ainda não paguei)</label>
       <span class="modebox" id="modebox">O valor digitado é: <select id="qmode"><option value="parcela">o de cada parcela</option><option value="total">o total da compra</option></select></span>
     </div>
     <div class="preview" id="qprev"></div>
@@ -169,7 +189,8 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
 
   <!-- ABAS -->
   <div class="tabs">
-    <button class="tab on" data-t="geral">📊 Visão geral</button>
+    <button class="tab on" data-t="contas">✅ Contas do mês</button>
+    <button class="tab" data-t="geral">📊 Visão geral</button>
     <button class="tab" data-t="lanc">🧾 Lançamentos</button>
     <button class="tab" data-t="dividas">💳 Parcelas e dívidas</button>
     <button class="tab" data-t="inv">📈 Investimentos</button>
@@ -177,7 +198,8 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
     <div class="scopefilter"><div class="toggle" id="sf"><button data-v="all" class="on">Tudo</button><button data-v="pessoal">🙋</button><button data-v="empresa">🏢</button></div></div>
   </div>
 
-  <div id="v-geral">
+  <div id="v-contas"><div class="card" id="bills"></div></div>
+  <div id="v-geral" class="hidden">
     <div class="grid cols">
       <div class="card"><h2 class="sec">🥧 Para onde foi o dinheiro (mês)</h2><div class="donutbox" id="donut"></div></div>
       <div class="card"><h2 class="sec">📅 Quanto vence por mês (dívidas)</h2><div id="tl"></div></div>
@@ -197,7 +219,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
       <div class="invrow2">
         <div class="toggle" id="ikind"><button type="button" data-v="aporte" class="on">⬆️ Aporte</button><button type="button" data-v="resgate">⬇️ Resgate</button></div>
         <div class="toggle" id="iscope"><button type="button" data-v="pessoal" class="on">🙋 Pessoal</button><button type="button" data-v="empresa">🏢 Empresa</button></div>
-        <span class="sm">Depois, informe o “valor atual” de cada ativo na tabela para ver a rentabilidade.</span>
+        
       </div>
       <datalist id="assets"></datalist>
     </div>
@@ -251,7 +273,7 @@ const cc=c=>(CATS[c]||['#999','📦']);
 let tx=[];try{tx=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
 let pref={kind:'gasto',scope:'pessoal',cat:'Alimentação'};try{Object.assign(pref,JSON.parse(localStorage.getItem(PREF))||{})}catch(e){}
 let cur=new Date();cur.setDate(1);
-let tab='geral',scopeF='all',editing=null;
+let tab='contas',scopeF='all',editing=null;
 const $=s=>document.querySelector(s);
 const save=()=>localStorage.setItem(KEY,JSON.stringify(tx));
 const savePref=()=>localStorage.setItem(PREF,JSON.stringify(pref));
@@ -362,10 +384,10 @@ function renderDividas(){
 function render(){
   $('#mlabel').textContent=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   renderKpis();
-  ['geral','lanc','dividas','inv'].forEach(t=>$('#v-'+t).classList.toggle('hidden',t!==tab));
+  ['contas','geral','lanc','dividas','inv'].forEach(t=>$('#v-'+t).classList.toggle('hidden',t!==tab));
   document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   [...$('#sf').children].forEach(b=>b.classList.toggle('on',b.dataset.v===scopeF));
-  if(tab==='geral')renderGeral();else if(tab==='lanc')renderLanc();else if(tab==='dividas')renderDividas();else renderInv();
+  if(tab==='contas')renderBills();else if(tab==='geral')renderGeral();else if(tab==='lanc')renderLanc();else if(tab==='dividas')renderDividas();else renderInv();
   const seen={};tx.forEach(t=>seen[t.desc]=1);
   $('#descs').innerHTML=Object.keys(seen).map(d=>`<option value="${esc(d)}">`).join('');
 }
@@ -377,13 +399,14 @@ function plan({val,n,mode,date}){
   const total=mode==='parcela'?Math.round(val*n*100)/100:val;
   return {n,each,total,last:addMonths(date,n-1)};
 }
-function createTx({kind,scope,desc,val,date,cat,n=1,mode='total'}){
+function createTx({kind,scope,desc,val,date,cat,n=1,mode='total',bill=false}){
   const p=plan({val,n,mode,date}),gid=uid();
   for(let i=0;i<p.n;i++){
     const d=addMonths(date,i);
     const v=i===p.n-1?Math.round((p.total-p.each*(p.n-1))*100)/100:p.each; // última parcela absorve o centavo
     tx.push({id:uid(),gid,i:i+1,n:p.n,kind,scope,desc,val:v,date:d,cat,
-      paid:kind==='receita'?true:(p.n>1?false:d<=today)});
+      bill:kind==='gasto'&&(bill||p.n>1||d>today),
+      paid:kind==='receita'?true:(bill||p.n>1?false:d<=today)});
   }
   save();return p;
 }
@@ -407,7 +430,7 @@ function updPrev(){
   const who=pref.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa';
   if(!(val>0)){$('#qprev').innerHTML=`Digite o valor para ver o resumo. Será lançado como <b>${isRec()?'🔺 entrada':'🔻 gasto'}</b> ${who}.`;return}
   if(isRec()){$('#qprev').innerHTML=`🔺 Entrada de <b class="pos">${brl(val)}</b> em ${fd(date)} · ${who}`;return}
-  if(n===1){$('#qprev').innerHTML=`🔻 <b>${brl(val)}</b> à vista em ${fd(date)} · ${who} · ${date<=today?'✅ já fica como pago':'⏳ fica em aberto até a data'}`;return}
+  if(n===1){$('#qprev').innerHTML=`🔻 <b>${brl(val)}</b> à vista em ${fd(date)} · ${who} · ${$('#qbill').checked?'📌 entra em <b>Contas do mês</b> como a pagar':date<=today?'✅ já fica como pago':'⏳ fica em aberto e entra em Contas do mês'}`;return}
   const p=plan({val,n,mode:$('#qmode').value,date});
   $('#qprev').innerHTML=`🔻 <b>${n}x de ${brl(p.each)}</b> = total <b>${brl(p.total)}</b> · 1ª em ${fd(date)}, última em ${fd(p.last)} · ${who} · ⏳ todas ficam em aberto (entram na dívida) até você marcar como pagas`;
 }
@@ -416,7 +439,7 @@ $('#qscope').onclick=e=>{const v=e.target.dataset.v;if(!v)return;pref.scope=v;sa
 $('#qcat').onchange=()=>{pref.cat=$('#qcat').value;savePref()};
 $('#qdate').value=today;
 document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{$('#qdate').value=c.dataset.d==='today'?today:iso(new Date(Date.now()-864e5));updPrev()});
-['qval','qn','qdate','qmode'].forEach(id=>$('#'+id).addEventListener('input',updPrev));
+['qval','qn','qdate','qmode','qbill'].forEach(id=>$('#'+id).addEventListener('input',updPrev));
 $('#qdesc').addEventListener('input',()=>{
   const d=$('#qdesc').value.trim().toLowerCase();if(!d)return;
   const last=[...tx].reverse().find(t=>t.desc.toLowerCase()===d);
@@ -427,10 +450,10 @@ function quickAdd(){
   if(!desc){$('#qdesc').focus();return}
   if(!(val>0)){$('#qval').focus();return}
   const n=parseInt($('#qn').value)||1,date=$('#qdate').value||today;
-  const p=createTx({kind:pref.kind,scope:pref.scope,desc,val,date,cat:$('#qcat').value,n,mode:$('#qmode').value});
+  const p=createTx({kind:pref.kind,scope:pref.scope,desc,val,date,cat:$('#qcat').value,n,mode:$('#qmode').value,bill:$('#qbill').checked});
   const [y,m]=date.split('-').map(Number);cur=new Date(y,m-1,1);
   toast(n>1?`✓ ${n}x de ${brl(p.each)} lançado (total ${brl(p.total)})`:`✓ ${brl(val)} lançado`);
-  $('#qdesc').value='';$('#qval').value='';$('#qn').value='1';$('#qmode').value='parcela';
+  $('#qdesc').value='';$('#qval').value='';$('#qn').value='1';$('#qmode').value='parcela';$('#qbill').checked=false;
   updPrev();$('#qdesc').focus();render();
 }
 $('#qadd').onclick=quickAdd;
@@ -527,14 +550,13 @@ function assetsList(){
   return Object.values(m).map(a=>({...a,now:curv[a.key]!==undefined?curv[a.key]:a.net,hasCur:curv[a.key]!==undefined}));
 }
 function renderInv(){
-  const as=assetsList(),tot=sumOf2(as,'net'),now=sumOf2(as,'now'),res=now-tot;
-  const sp=(k)=>sumOf2(as.filter(a=>a.scope===k),'now');
+  const as=assetsList(),tot=sumOf2(as,'net');
+  const sp=(k)=>sumOf2(as.filter(a=>a.scope===k),'net');
   $('#invk').innerHTML=`
-  <div class="card kpi"><div class="lbl">🏦 Total aportado (líquido de resgates)</div><div class="val">${brl(tot)}</div><div class="sub">${as.length} ativo(s)</div></div>
-  <div class="card kpi"><div class="lbl">💎 Valor atual</div><div class="val">${brl(now)}</div>${split(sp('pessoal'),sp('empresa'))}</div>
-  <div class="card kpi"><div class="lbl">📊 Rentabilidade</div><div class="val ${res>=0?'pos':'neg'}">${res>=0?'+':''}${brl(res)}</div><div class="sub">${tot>0?`<b class="${res>=0?'pos':'neg'}">${(res/tot*100).toFixed(2).replace('.',',')}%</b> sobre o aportado`:'—'}</div></div>`;
+  <div class="card kpi"><div class="lbl">🏦 Total aportado (já descontando resgates)</div><div class="val">${brl(tot)}</div><div class="sub">${as.length} ativo(s)</div></div>
+  <div class="card kpi"><div class="lbl">🙋🏢 Quem está investindo</div><div class="val" style="font-size:20px;margin-top:10px">&nbsp;</div>${split(sp('pessoal'),sp('empresa'))}</div>`;
   // donut por tipo
-  const bt={};as.forEach(a=>bt[a.type]=(bt[a.type]||0)+Math.max(a.now,0));
+  const bt={};as.forEach(a=>bt[a.type]=(bt[a.type]||0)+Math.max(a.net,0));
   const en=Object.entries(bt).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]),tt=en.reduce((x,y)=>x+y[1],0);
   if(!tt)$('#invdonut').innerHTML='<div class="empty" style="width:100%">Nenhum investimento ainda.<br>Faça o primeiro aporte acima.</div>';
   else{let acc=0;const st=en.map(([c,v])=>{const a=acc/tt*100;acc+=v;return `${ic(c)[0]} ${a}% ${acc/tt*100}%`});
@@ -549,11 +571,9 @@ function renderInv(){
   $('#invevo').innerHTML=`<div class="tl">${ms.map(m=>`<div title="${m.d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}: ${brl(m.v)}"><em>${m.v>0?(m.v>=1000?(m.v/1000).toFixed(m.v>=10000?0:1).replace('.',',')+'k':Math.round(m.v)):''}</em>
     <div class="st" style="height:${Math.max(m.v,0)/mx*80}%"><i style="height:100%;background:var(--pos)"></i></div><span>${m.d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</span></div>`).join('')}</div>`;
   // ativos
-  $('#invassets').innerHTML=as.length?`<table><thead><tr><th>Ativo</th><th style="text-align:right">Aportado</th><th style="text-align:right">Valor atual</th><th style="text-align:right">Resultado</th></tr></thead><tbody>`+
-    as.sort((a,b)=>b.now-a.now).map(a=>{const r=a.now-a.net;return `<tr><td>${ic(a.type)[1]} <b>${esc(a.name)}</b><br><small>${a.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'} · ${esc(a.type)}</small></td>
-    <td class="v">${brl(a.net)}</td>
-    <td class="v"><input class="cur" inputmode="decimal" value="${a.hasCur?String(a.now).replace('.',','):''}" placeholder="${brl(a.net)}" data-a="${esc(a.name)}" onchange="setCur(this.dataset.a,this.value)" title="Digite quanto vale hoje (deixe vazio para usar o aportado)"></td>
-    <td class="v ${r>=0?'pos':'neg'}"><b>${r>=0?'+':''}${brl(r)}</b>${a.net>0?`<br><small>${(r/a.net*100).toFixed(2).replace('.',',')}%</small>`:''}</td></tr>`}).join('')+'</tbody></table>'
+  $('#invassets').innerHTML=as.length?`<table><thead><tr><th>Ativo</th><th style="text-align:right">Total aportado</th></tr></thead><tbody>`+
+    as.sort((a,b)=>b.net-a.net).map(a=>`<tr><td>${ic(a.type)[1]} <b>${esc(a.name)}</b><br><small>${a.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'} · ${esc(a.type)}</small></td>
+    <td class="v"><b>${brl(a.net)}</b></td></tr>`).join('')+'</tbody></table>'
     :'<div class="empty">Seus ativos aparecem aqui.</div>';
   const h=[...inv].filter(inScope).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
   $('#invhist').innerHTML=h.length?`<table><tbody>`+h.map(x=>`<tr><td>${fdm(x.date)}/${x.date.slice(2,4)}</td><td>${ic(x.type)[1]} <b>${esc(x.asset)}</b><br><small>${x.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'} · ${esc(x.type)}</small></td>
@@ -561,6 +581,40 @@ function renderInv(){
   $('#assets').innerHTML=[...new Set(inv.map(x=>x.asset))].map(a=>`<option value="${esc(a)}">`).join('');
 }
 function sumOf2(l,k){return l.reduce((a,x)=>a+x[k],0)}
+
+/* ---------- contas a pagar do mês ---------- */
+function togglePaid(id){const t=tx.find(x=>x.id===id);if(t){t.paid=!t.paid;save();render();if(t.paid)toast('✓ Pago: '+t.desc)}}
+function dayDiff(d){return Math.round((new Date(d+'T00:00')-new Date(today+'T00:00'))/864e5)}
+function renderBills(){
+  const first=curKey()+'-01';
+  const isBill=t=>t.kind==='gasto'&&inScope(t)&&(t.bill||t.n>1||!t.paid);
+  const month=tx.filter(t=>isBill(t)&&mkey(t.date)===curKey()).sort((a,b)=>a.date.localeCompare(b.date)||a.desc.localeCompare(b.desc));
+  const old=tx.filter(t=>isBill(t)&&!t.paid&&t.date<first).sort((a,b)=>a.date.localeCompare(b.date));
+  const tot=sumOf(month),paid=sumOf(month.filter(t=>t.paid)),rest=tot-paid;
+  const nOpen=month.filter(t=>!t.paid).length,pct=tot?paid/tot*100:0;
+  const rp=sumOf(month.filter(t=>!t.paid&&t.scope==='pessoal')),re=sumOf(month.filter(t=>!t.paid&&t.scope==='empresa'));
+  const due=t=>{
+    if(t.paid)return `<span class="due">pago</span>`;
+    const d=dayDiff(t.date);
+    return d<0?`<span class="due late">⚠ atrasada ${-d}d · ${fdm(t.date)}</span>`:d===0?`<span class="due today">🔔 vence hoje</span>`:`<span class="due">vence ${fdm(t.date)} · em ${d}d</span>`;
+  };
+  const row=t=>`<div class="bill ${t.paid?'done':''} ${!t.paid&&t.date<today?'lateb':''}">
+    <button class="ck" onclick="togglePaid('${t.id}')" title="${t.paid?'Desmarcar (voltar para a pagar)':'Marcar como paga'}">✔</button>
+    <div><div class="nm">${cc(t.cat)[1]} ${esc(t.desc)}${t.n>1?` <span class="sm">(${t.i}/${t.n})</span>`:''}</div>
+      <div class="due">${t.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'} · ${due(t)}</div></div>
+    <div class="vl">${brl(t.val)}</div>
+    <div class="acts"><button class="ghost" title="Editar" onclick="edit('${t.id}')">✏️</button><button class="ghost" title="Excluir" onclick="del('${t.id}')">🗑</button></div></div>`;
+  const openM=month.filter(t=>!t.paid),doneM=month.filter(t=>t.paid);
+  const label=cur.toLocaleDateString('pt-BR',{month:'long'});
+  $('#bills').innerHTML=`<h2 class="sec">✅ Contas a pagar em ${label}</h2>
+  <div class="bh"><div><div class="sm">Falta pagar</div><div class="big ${rest>0?'neg':'pos'}">${brl(rest)}</div></div>
+    <div style="text-align:right" class="sm">já pago <b class="pos">${brl(paid)}</b> de <b>${brl(tot)}</b><br>${nOpen?`${nOpen} conta(s) em aberto`:'🎉 tudo pago neste mês!'}</div></div>
+  <div class="prog"><i style="width:${pct}%"></i></div>
+  <div class="sl"><span>${Math.round(pct)}% pago</span><span>falta: 🙋 <b>${brl(rp)}</b> · 🏢 <b>${brl(re)}</b></span></div>
+  ${old.length?`<div class="sub-h" style="color:var(--neg)">⚠️ Pendentes de meses anteriores — ${brl(sumOf(old))}</div>${old.map(row).join('')}`:''}
+  <div class="sub-h">📌 A pagar neste mês (${openM.length})</div>${openM.map(row).join('')||'<div class="empty">Nada a pagar neste mês 🎉<br><span class="sm">Parcelas e contas marcadas como “conta a pagar” aparecem aqui.</span></div>'}
+  ${doneM.length?`<div class="sub-h">✅ Já pagas (${doneM.length})</div>${doneM.map(row).join('')}`:''}`;
+}
 
 /* ---------- tema claro / escuro ---------- */
 const THEME='financeiro_theme';
