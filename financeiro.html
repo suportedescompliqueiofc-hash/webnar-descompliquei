@@ -143,7 +143,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
       <select id="qcat" style="width:auto"></select>
       <input id="qdate" type="date" style="width:auto">
       <span class="chip" data-d="today">Hoje</span><span class="chip" data-d="yest">Ontem</span>
-      <span class="modebox" id="modebox">O valor digitado é: <select id="qmode"><option value="total">o total</option><option value="parcela">o de cada parcela</option></select></span>
+      <span class="modebox" id="modebox">O valor digitado é: <select id="qmode"><option value="parcela">o de cada parcela</option><option value="total">o total da compra</option></select></span>
     </div>
     <div class="preview" id="qprev"></div>
     <datalist id="descs"></datalist>
@@ -386,7 +386,7 @@ function quickAdd(){
   const p=createTx({kind:pref.kind,scope:pref.scope,desc,val,date,cat:$('#qcat').value,n,mode:$('#qmode').value});
   const [y,m]=date.split('-').map(Number);cur=new Date(y,m-1,1);
   toast(n>1?`✓ ${n}x de ${brl(p.each)} lançado (total ${brl(p.total)})`:`✓ ${brl(val)} lançado`);
-  $('#qdesc').value='';$('#qval').value='';$('#qn').value='1';$('#qmode').value='total';
+  $('#qdesc').value='';$('#qval').value='';$('#qn').value='1';$('#qmode').value='parcela';
   updPrev();$('#qdesc').focus();render();
 }
 $('#qadd').onclick=quickAdd;
