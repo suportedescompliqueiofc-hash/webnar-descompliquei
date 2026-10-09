@@ -19,6 +19,12 @@
   --pos:#34d399;         /* entradas */
   --neg:#fb7185;         /* gastos / dívidas */
   --warn:#fbbf24;
+  --dbd:#5a2a3d;         /* borda do cartão de dívida */
+  --cs:dark;
+}
+:root[data-theme=light]{
+  --bg:#f2f5fb;--card:#ffffff;--card2:#eef2f9;--bd:#dce3f0;--tx:#16203a;--mut:#5d6a8a;
+  --brand:#2f6df0;--pes:#2f6df0;--emp:#0891b2;--pos:#0f9d6b;--neg:#e11d48;--dbd:#f3b8c6;--cs:light;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
@@ -39,7 +45,7 @@ h2.sec{font-size:13px;margin:0 0 12px;color:var(--mut);font-weight:700;text-tran
 .kpi .lbl{font-size:13px;color:var(--mut);font-weight:600}
 .kpi .val{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:2px 0 8px}
 .kpi .sub{font-size:13px;color:var(--mut)}
-.kpi.debt{border-color:#5a2a3d}
+.kpi.debt{border-color:var(--dbd)}
 .pos{color:var(--pos)}.neg{color:var(--neg)}
 .split{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--card2);margin:6px 0}
 .split i{display:block}
@@ -105,12 +111,24 @@ td small,.sm{color:var(--mut);font-size:12px}
 .sub-h{font-size:12px;color:var(--mut);margin:18px 0 0;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .sub-h:first-child{margin-top:0}
 
+.pc{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}
+.pc b{width:24px;height:24px;border-radius:7px;font-size:10px;display:grid;place-items:center;font-weight:700;color:var(--mut);background:var(--card2);border:1px solid var(--bd)}
+.pc b.ok{background:var(--pos);border-color:var(--pos);color:#04251a}
+.pc b.late{background:var(--neg);border-color:var(--neg);color:#fff}
+.pc b.open{cursor:pointer;border-color:var(--warn);color:var(--tx)}
+.pc b.open:hover{background:var(--warn);color:#2b1c00}
+.lg{display:flex;gap:12px;font-size:11px;color:var(--mut);margin:10px 0 0;flex-wrap:wrap}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.invrow{display:grid;grid-template-columns:1.4fr 1.1fr 1fr 1fr auto;gap:8px}
+@media(max-width:900px){.invrow{grid-template-columns:1fr 1fr}.invrow #iasset{grid-column:1/-1}}
+.invrow2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+td input.cur{width:130px;text-align:right;padding:6px 8px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--pos);color:#032b1c;padding:10px 18px;border-radius:99px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:9}
 .toast.show{opacity:1}
 dialog{border:1px solid var(--bd);border-radius:16px;padding:20px;width:min(420px,94vw);background:var(--card);color:var(--tx)}
 dialog::backdrop{background:#000a}
 label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
-input,select{width:100%;font:inherit;padding:9px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--card2);color:var(--tx);color-scheme:dark}
+input,select{width:100%;font:inherit;padding:9px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--card2);color:var(--tx);color-scheme:var(--cs)}
 input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
@@ -122,7 +140,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
 <div class="wrap">
   <header>
     <div class="logo"><i>A</i>Altta Financeiro</div>
-    <div class="month"><button class="ghost" id="prev">◀</button><b id="mlabel"></b><button class="ghost" id="next">▶</button></div>
+    <div style="display:flex;gap:8px;align-items:center"><button id="theme" title="Alternar claro/escuro">🌙</button><div class="month"><button class="ghost" id="prev">◀</button><b id="mlabel"></b><button class="ghost" id="next">▶</button></div></div>
   </header>
 
   <!-- RESUMO -->
@@ -154,6 +172,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
     <button class="tab on" data-t="geral">📊 Visão geral</button>
     <button class="tab" data-t="lanc">🧾 Lançamentos</button>
     <button class="tab" data-t="dividas">💳 Parcelas e dívidas</button>
+    <button class="tab" data-t="inv">📈 Investimentos</button>
     <span class="sp"></span>
     <div class="scopefilter"><div class="toggle" id="sf"><button data-v="all" class="on">Tudo</button><button data-v="pessoal">🙋</button><button data-v="empresa">🏢</button></div></div>
   </div>
@@ -166,6 +185,30 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
   </div>
   <div id="v-lanc" class="hidden"><div class="card"><h2 class="sec">🧾 Lançamentos do mês</h2><div class="scroll" id="list"></div></div></div>
   <div id="v-dividas" class="hidden"><div class="card" id="debts"></div></div>
+  <div id="v-inv" class="hidden">
+    <div class="card" style="margin-bottom:12px"><h2 class="sec">➕ Novo aporte / resgate</h2>
+      <div class="invrow">
+        <input id="iasset" list="assets" placeholder="Ativo. Ex: Tesouro Selic, CDB, PETR4, Bitcoin..." autocomplete="off">
+        <select id="itype"></select>
+        <input id="ival" inputmode="decimal" placeholder="Valor R$ 0,00" autocomplete="off">
+        <input id="idate" type="date">
+        <button class="primary" id="iadd" type="button">Adicionar</button>
+      </div>
+      <div class="invrow2">
+        <div class="toggle" id="ikind"><button type="button" data-v="aporte" class="on">⬆️ Aporte</button><button type="button" data-v="resgate">⬇️ Resgate</button></div>
+        <div class="toggle" id="iscope"><button type="button" data-v="pessoal" class="on">🙋 Pessoal</button><button type="button" data-v="empresa">🏢 Empresa</button></div>
+        <span class="sm">Depois, informe o “valor atual” de cada ativo na tabela para ver a rentabilidade.</span>
+      </div>
+      <datalist id="assets"></datalist>
+    </div>
+    <div class="grid kpis" id="invk"></div>
+    <div class="grid cols">
+      <div class="card"><h2 class="sec">🧭 Onde está investido</h2><div class="donutbox" id="invdonut"></div></div>
+      <div class="card"><h2 class="sec">📈 Evolução do total aportado</h2><div id="invevo"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h2 class="sec">💼 Meus ativos</h2><div class="scroll" id="invassets"></div></div>
+    <div class="card" style="margin-top:12px"><h2 class="sec">🧾 Histórico de aportes e resgates</h2><div class="scroll" id="invhist"></div></div>
+  </div>
 
   <div class="foot">
     <button id="exp">⬇ Exportar backup</button>
@@ -306,22 +349,23 @@ function renderDividas(){
     return `<div class="dg">
       <div><div class="t">${cc(f.cat)[1]} ${esc(f.desc)} <span class="sm">${f.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'}</span></div></div>
       <div class="r neg">${brl(left)}</div>
-      ${n>1?`<div class="bar"><i style="width:${paid/n*100}%"></i></div>`:''}
+      ${n>1?`<div class="pc">${a.map((t,k)=>`<b class="${t.paid?'ok':t.date<today?'late open':'open'}" ${t.paid?'':`onclick="pay('${t.id}')"`} title="${k+1}/${n} · ${fd(t.date)} · ${brl(t.val)} · ${t.paid?'paga':t.date<today?'ATRASADA — clique para pagar':'em aberto — clique para pagar'}">${k+1}</b>`).join('')}</div>`:''}
       <div class="meta"><span>${n>1?`${n}x de ${brl(f.val)} · <b>${paid}/${n} pagas</b> · faltam ${rest.length} · `:''}${isLate?'<b class="late">⚠ atrasada · </b>':''}${n>1?'próxima':'vence'} <b>${fd(next.date)}</b>${n>1?` · última ${fd(rest[rest.length-1].date)}`:''}</span>
       <span><button onclick="pay('${next.id}')">✔ Pagar ${n>1?'próxima':''}</button> <button class="ghost" title="Excluir" onclick="del('${next.id}')">🗑</button></span></div></div>`;
   };
   $('#debts').innerHTML=!groups.length?'<div class="empty">🎉 Nenhuma dívida em aberto.</div>':
    `<div class="sub-h">📦 Compras parceladas (${parc.length}) — faltam ${brl(sumOf(parc.flat().filter(t=>!t.paid)))}</div>${parc.map(row).join('')||'<div class="empty">Nenhuma.</div>'}
+    <div class="lg"><span><i style="background:var(--pos)"></i>paga</span><span><i style="background:var(--card2);border:1px solid var(--warn)"></i>em aberto (clique para pagar)</span><span><i style="background:var(--neg)"></i>atrasada</span></div>
     <div class="sub-h">🧾 Contas avulsas em aberto (${avul.length}) — ${brl(sumOf(avul.flat().filter(t=>!t.paid)))}</div>${avul.map(row).join('')||'<div class="empty">Nenhuma.</div>'}`;
 }
 
 function render(){
   $('#mlabel').textContent=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   renderKpis();
-  ['geral','lanc','dividas'].forEach(t=>$('#v-'+t).classList.toggle('hidden',t!==tab));
+  ['geral','lanc','dividas','inv'].forEach(t=>$('#v-'+t).classList.toggle('hidden',t!==tab));
   document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   [...$('#sf').children].forEach(b=>b.classList.toggle('on',b.dataset.v===scopeF));
-  if(tab==='geral')renderGeral();else if(tab==='lanc')renderLanc();else renderDividas();
+  if(tab==='geral')renderGeral();else if(tab==='lanc')renderLanc();else if(tab==='dividas')renderDividas();else renderInv();
   const seen={};tx.forEach(t=>seen[t.desc]=1);
   $('#descs').innerHTML=Object.keys(seen).map(d=>`<option value="${esc(d)}">`).join('');
 }
@@ -424,19 +468,107 @@ document.querySelectorAll('.tabs .tab').forEach(b=>b.onclick=()=>{tab=b.dataset.
 $('#sf').onclick=e=>{const v=e.target.dataset.v;if(v){scopeF=v;render()}};
 $('#exp').onclick=()=>{
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(tx,null,1)],{type:'application/json'}));
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({v:2,tx,inv,curv},null,1)],{type:'application/json'}));
   a.download=`financeiro-${today}.json`;a.click();
 };
 $('#imp').onclick=()=>$('#file').click();
 $('#file').onchange=e=>{
   const r=new FileReader();
   r.onload=()=>{
-    try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;
-      if(confirm('Isso substitui os dados atuais. Continuar?')){tx=d;save();render()}
+    try{let d=JSON.parse(r.result);if(Array.isArray(d))d={tx:d,inv:inv,curv:curv};if(!Array.isArray(d.tx))throw 0;
+      if(confirm('Isso substitui os dados atuais. Continuar?')){tx=d.tx;inv=d.inv||[];curv=d.curv||{};save();saveInv();render()}
     }catch(_){alert('Arquivo inválido.')}
   };
   if(e.target.files[0])r.readAsText(e.target.files[0]);e.target.value='';
 };
+/* ---------- investimentos ---------- */
+const ITYPES={'Renda fixa':['#3d7bff','🏦'],'Ações':['#f97316','📈'],'FIIs':['#14b8a6','🏢'],'Cripto':['#eab308','🪙'],
+  'Reserva de emergência':['#34d399','🛟'],'Previdência':['#a855f7','🧓'],'Negócio próprio':['#ec4899','🧩'],'Outros':['#94a3b8','📦']};
+const ic=t=>ITYPES[t]||['#94a3b8','📦'];
+const INV='financeiro_inv_v1',CUR='financeiro_cur_v1';
+let inv=[],curv={};try{inv=JSON.parse(localStorage.getItem(INV))||[];curv=JSON.parse(localStorage.getItem(CUR))||{}}catch(e){}
+const saveInv=()=>{localStorage.setItem(INV,JSON.stringify(inv));localStorage.setItem(CUR,JSON.stringify(curv))};
+let ipref={kind:'aporte',scope:'pessoal'};
+$('#itype').innerHTML=Object.keys(ITYPES).map(t=>`<option value="${t}">${ic(t)[1]} ${t}</option>`).join('');
+$('#idate').value=today;
+function syncInvToggles(){
+  [...$('#ikind').children].forEach(b=>b.classList.toggle('on',b.dataset.v===ipref.kind));
+  [...$('#iscope').children].forEach(b=>{const on=b.dataset.v===ipref.scope;b.classList.toggle('on',on);b.classList.toggle('emp',on&&b.dataset.v==='empresa')});
+}
+$('#ikind').onclick=e=>{const v=e.target.dataset.v;if(v){ipref.kind=v;syncInvToggles()}};
+$('#iscope').onclick=e=>{const v=e.target.dataset.v;if(v){ipref.scope=v;syncInvToggles()}};
+$('#iasset').addEventListener('input',()=>{
+  const k=$('#iasset').value.trim().toLowerCase();const l=[...inv].reverse().find(x=>x.asset.toLowerCase()===k);
+  if(l){$('#itype').value=l.type;ipref.scope=l.scope;syncInvToggles()}
+});
+function invAdd(){
+  const asset=$('#iasset').value.trim(),val=num($('#ival').value);
+  if(!asset){$('#iasset').focus();return}
+  if(!(val>0)){$('#ival').focus();return}
+  inv.push({id:uid(),date:$('#idate').value||today,asset,type:$('#itype').value,scope:ipref.scope,kind:ipref.kind,val});
+  saveInv();toast(`✓ ${ipref.kind==='aporte'?'Aporte':'Resgate'} de ${brl(val)} em ${asset}`);
+  $('#iasset').value='';$('#ival').value='';$('#iasset').focus();render();
+}
+$('#iadd').onclick=invAdd;
+['iasset','ival'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();invAdd()}}));
+syncInvToggles();
+function invDel(id){if(confirm('Excluir este registro?')){inv=inv.filter(x=>x.id!==id);saveInv();render()}}
+function setCur(asset,v){
+  const k=asset.toLowerCase();v=String(v).trim();
+  if(v==='')delete curv[k];else{const n=num(v);if(n>=0)curv[k]=n}
+  saveInv();render();
+}
+function assetsList(){
+  const m={};
+  inv.filter(inScope).sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>{
+    const k=x.asset.toLowerCase();const a=m[k]??={key:k,name:x.asset,type:x.type,scope:x.scope,net:0};
+    a.net+=x.kind==='aporte'?x.val:-x.val;a.type=x.type;a.scope=x.scope;a.name=x.asset;
+  });
+  return Object.values(m).map(a=>({...a,now:curv[a.key]!==undefined?curv[a.key]:a.net,hasCur:curv[a.key]!==undefined}));
+}
+function renderInv(){
+  const as=assetsList(),tot=sumOf2(as,'net'),now=sumOf2(as,'now'),res=now-tot;
+  const sp=(k)=>sumOf2(as.filter(a=>a.scope===k),'now');
+  $('#invk').innerHTML=`
+  <div class="card kpi"><div class="lbl">🏦 Total aportado (líquido de resgates)</div><div class="val">${brl(tot)}</div><div class="sub">${as.length} ativo(s)</div></div>
+  <div class="card kpi"><div class="lbl">💎 Valor atual</div><div class="val">${brl(now)}</div>${split(sp('pessoal'),sp('empresa'))}</div>
+  <div class="card kpi"><div class="lbl">📊 Rentabilidade</div><div class="val ${res>=0?'pos':'neg'}">${res>=0?'+':''}${brl(res)}</div><div class="sub">${tot>0?`<b class="${res>=0?'pos':'neg'}">${(res/tot*100).toFixed(2).replace('.',',')}%</b> sobre o aportado`:'—'}</div></div>`;
+  // donut por tipo
+  const bt={};as.forEach(a=>bt[a.type]=(bt[a.type]||0)+Math.max(a.now,0));
+  const en=Object.entries(bt).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]),tt=en.reduce((x,y)=>x+y[1],0);
+  if(!tt)$('#invdonut').innerHTML='<div class="empty" style="width:100%">Nenhum investimento ainda.<br>Faça o primeiro aporte acima.</div>';
+  else{let acc=0;const st=en.map(([c,v])=>{const a=acc/tt*100;acc+=v;return `${ic(c)[0]} ${a}% ${acc/tt*100}%`});
+    $('#invdonut').innerHTML=`<div class="donut" style="background:conic-gradient(${st.join(',')})"></div>
+    <div class="legend">${en.map(([c,v])=>`<div><span>${ic(c)[1]} ${esc(c)} <span class="sm">${Math.round(v/tt*100)}%</span></span><b>${brl(v)}</b></div>`).join('')}</div>`}
+  // evolução acumulada 12 meses
+  const n0=new Date();n0.setDate(1);const ms=[];
+  for(let i=11;i>=0;i--){const d=new Date(n0.getFullYear(),n0.getMonth()-i,1);ms.push({d,end:iso(new Date(d.getFullYear(),d.getMonth()+1,0))})}
+  const list=inv.filter(inScope);
+  ms.forEach(m=>m.v=list.filter(x=>x.date<=m.end).reduce((a,x)=>a+(x.kind==='aporte'?x.val:-x.val),0));
+  const mx=Math.max(1,...ms.map(m=>m.v));
+  $('#invevo').innerHTML=`<div class="tl">${ms.map(m=>`<div title="${m.d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}: ${brl(m.v)}"><em>${m.v>0?(m.v>=1000?(m.v/1000).toFixed(m.v>=10000?0:1).replace('.',',')+'k':Math.round(m.v)):''}</em>
+    <div class="st" style="height:${Math.max(m.v,0)/mx*80}%"><i style="height:100%;background:var(--pos)"></i></div><span>${m.d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</span></div>`).join('')}</div>`;
+  // ativos
+  $('#invassets').innerHTML=as.length?`<table><thead><tr><th>Ativo</th><th style="text-align:right">Aportado</th><th style="text-align:right">Valor atual</th><th style="text-align:right">Resultado</th></tr></thead><tbody>`+
+    as.sort((a,b)=>b.now-a.now).map(a=>{const r=a.now-a.net;return `<tr><td>${ic(a.type)[1]} <b>${esc(a.name)}</b><br><small>${a.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'} · ${esc(a.type)}</small></td>
+    <td class="v">${brl(a.net)}</td>
+    <td class="v"><input class="cur" inputmode="decimal" value="${a.hasCur?String(a.now).replace('.',','):''}" placeholder="${brl(a.net)}" data-a="${esc(a.name)}" onchange="setCur(this.dataset.a,this.value)" title="Digite quanto vale hoje (deixe vazio para usar o aportado)"></td>
+    <td class="v ${r>=0?'pos':'neg'}"><b>${r>=0?'+':''}${brl(r)}</b>${a.net>0?`<br><small>${(r/a.net*100).toFixed(2).replace('.',',')}%</small>`:''}</td></tr>`}).join('')+'</tbody></table>'
+    :'<div class="empty">Seus ativos aparecem aqui.</div>';
+  const h=[...inv].filter(inScope).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  $('#invhist').innerHTML=h.length?`<table><tbody>`+h.map(x=>`<tr><td>${fdm(x.date)}/${x.date.slice(2,4)}</td><td>${ic(x.type)[1]} <b>${esc(x.asset)}</b><br><small>${x.scope==='pessoal'?'🙋 Pessoal':'🏢 Empresa'} · ${esc(x.type)}</small></td>
+    <td class="v ${x.kind==='aporte'?'pos':'neg'}"><b>${x.kind==='aporte'?'⬆️ +':'⬇️ −'} ${brl(x.val)}</b></td><td class="v"><button class="ghost" onclick="invDel('${x.id}')" title="Excluir">🗑</button></td></tr>`).join('')+'</tbody></table>':'<div class="empty">Sem registros.</div>';
+  $('#assets').innerHTML=[...new Set(inv.map(x=>x.asset))].map(a=>`<option value="${esc(a)}">`).join('');
+}
+function sumOf2(l,k){return l.reduce((a,x)=>a+x[k],0)}
+
+/* ---------- tema claro / escuro ---------- */
+const THEME='financeiro_theme';
+function setTheme(t){document.documentElement.dataset.theme=t;$('#theme').textContent=t==='light'?'🌙':'☀️';$('#theme').title=t==='light'?'Mudar para escuro':'Mudar para claro';try{localStorage.setItem(THEME,t)}catch(e){}}
+let th='dark';try{th=localStorage.getItem(THEME)||'dark'}catch(e){}
+setTheme(th);
+$('#theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='light'?'dark':'light');
+
 render();
 </script>
 </body>
