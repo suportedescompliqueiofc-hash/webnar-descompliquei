@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meu Financeiro</title>
+<style>
+:root{
+  --bg:#f4f5f9;--card:#fff;--tx:#1d2233;--mut:#6b7285;--bd:#e4e7ef;
+  --pes:#7c5cff;--emp:#0ea5a4;--neg:#e5484d;--pos:#16a34a;--warn:#f59e0b;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f1220;--card:#181c2e;--tx:#e9ecf6;--mut:#8f97b2;--bd:#262b44}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:20px;margin:0}
+.month{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:4px 8px}
+.month b{min-width:130px;text-align:center;text-transform:capitalize}
+button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:8px 12px}
+button:hover{border-color:var(--pes)}
+.primary{background:var(--pes);color:#fff;border-color:var(--pes);font-weight:600}
+.ghost{border:none;background:none;padding:4px 8px}
+.grid{display:grid;gap:12px}
+.cards{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.big{font-size:28px;font-weight:700}
+.row{display:flex;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px;margin-top:4px}
+.row span:last-child{color:var(--tx);font-weight:600}
+.pos{color:var(--pos)!important}.neg{color:var(--neg)!important}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.cols{grid-template-columns:1fr 1fr;margin-top:12px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.donutbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.donut{width:150px;height:150px;border-radius:50%;flex:none;position:relative}
+.donut::after{content:"";position:absolute;inset:28px;background:var(--card);border-radius:50%}
+.legend{flex:1;min-width:150px;font-size:13px}
+.legend div{display:flex;justify-content:space-between;gap:8px;margin:3px 0}
+.bars{display:flex;align-items:flex-end;gap:2px;height:130px;margin-top:8px}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:3px;height:100%}
+.bars i{display:block;width:100%}
+.axis{display:flex;justify-content:space-between;color:var(--mut);font-size:11px;margin-top:4px}
+.tabs{display:flex;gap:6px;margin:16px 0 8px;flex-wrap:wrap}
+.tabs button.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+table{width:100%;border-collapse:collapse}
+td,th{padding:9px 6px;border-bottom:1px solid var(--bd);text-align:left;font-size:14px}
+th{color:var(--mut);font-size:12px;font-weight:600}
+td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;color:#fff;white-space:nowrap}
+.scroll{overflow-x:auto}
+.empty{color:var(--mut);text-align:center;padding:24px}
+.up{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.up small{color:var(--mut);display:block}
+.late{color:var(--neg)}
+dialog{border:none;border-radius:18px;padding:20px;width:min(440px,94vw);background:var(--card);color:var(--tx)}
+dialog::backdrop{background:#0008}
+label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
+input,select{width:100%;font:inherit;padding:9px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg label{margin:0;padding:9px;border:1px solid var(--bd);border-radius:10px;text-align:center;cursor:pointer;color:var(--tx);font-size:14px}
+.seg input{display:none}
+.seg input:checked+span{font-weight:700}
+.seg label:has(input:checked){border-color:var(--pes);background:color-mix(in srgb,var(--pes) 15%,transparent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;color:var(--mut);font-size:12px;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💰 Meu Financeiro</h1>
+    <div class="month">
+      <button class="ghost" id="prev">◀</button><b id="mlabel"></b><button class="ghost" id="next">▶</button>
+    </div>
+    <button class="primary" id="add">+ Novo lançamento</button>
+  </header>
+
+  <div class="grid cards" id="cards"></div>
+
+  <div class="grid cols">
+    <div class="card"><h3>Gastos por categoria</h3><div class="donutbox" id="donut"></div></div>
+    <div class="card"><h3>Gastos por dia</h3><div id="bars"></div></div>
+  </div>
+
+  <div class="grid cols">
+    <div class="card"><h3>Próximas parcelas e contas a pagar</h3><div id="upcoming"></div></div>
+    <div class="card">
+      <h3>Lançamentos do mês</h3>
+      <div class="tabs" id="tabs">
+        <button data-f="all" class="on">Tudo</button>
+        <button data-f="pessoal">Pessoal</button>
+        <button data-f="empresa">Empresa</button>
+      </div>
+      <div class="scroll" id="list"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button id="exp">⬇ Exportar backup</button>
+    <button id="imp">⬆ Importar backup</button>
+    <input type="file" id="file" accept=".json" hidden>
+    <span>Dados salvos só neste navegador. Faça backup de vez em quando.</span>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <h2 style="margin:0 0 4px" id="dtitle">Novo lançamento</h2>
+    <label>Tipo</label>
+    <div class="seg">
+      <label><input type="radio" name="kind" value="gasto" checked><span>🔻 Gasto</span></label>
+      <label><input type="radio" name="kind" value="receita"><span>🔺 Entrada</span></label>
+    </div>
+    <label>De quem é?</label>
+    <div class="seg">
+      <label><input type="radio" name="scope" value="pessoal" checked><span>🙋 Pessoal</span></label>
+      <label><input type="radio" name="scope" value="empresa"><span>🏢 Empresa</span></label>
+    </div>
+    <label>Descrição</label><input name="desc" required placeholder="Ex: Mercado, Facebook Ads, Notebook...">
+    <div class="two">
+      <div><label>Valor (R$)</label><input name="val" type="number" step="0.01" min="0.01" required></div>
+      <div><label>Data</label><input name="date" type="date" required></div>
+    </div>
+    <div class="two">
+      <div><label>Categoria</label><select name="cat"></select></div>
+      <div><label>Pagamento</label>
+        <select name="pay"><option>Cartão de crédito</option><option>Pix / Débito</option><option>Dinheiro</option><option>Boleto</option><option>Conta empresa</option></select>
+      </div>
+    </div>
+    <div class="two" id="parcbox">
+      <div><label>Parcelas</label><input name="n" type="number" min="1" max="60" value="1"></div>
+      <div><label>Valor informado é</label>
+        <select name="mode"><option value="total">O total</option><option value="parcela">De cada parcela</option></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="cancel">Cancelar</button>
+      <button class="primary" id="save">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const KEY='financeiro_v1';
+const CATS={
+  'Alimentação':'#f97316','Moradia':'#6366f1','Transporte':'#0ea5e9','Saúde':'#ef4444','Lazer':'#ec4899',
+  'Marketing / Anúncios':'#8b5cf6','Ferramentas / Software':'#14b8a6','Equipe / Salários':'#eab308',
+  'Impostos':'#64748b','Compras':'#a855f7','Cartão / Dívidas':'#dc2626','Outros':'#94a3b8','Receita':'#16a34a'
+};
+let tx=[];try{tx=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
+let cur=new Date();cur.setDate(1);
+let filter='all',editing=null;
+const $=s=>document.querySelector(s);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(tx));
+const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today=iso(new Date());
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mkey=d=>d.slice(0,7);
+const curKey=()=>`${cur.getFullYear()}-${pad(cur.getMonth()+1)}`;
+const fmtDate=d=>d.split('-').reverse().slice(0,2).join('/');
+function addMonths(dstr,k){
+  const [y,m,d]=dstr.split('-').map(Number);
+  const t=new Date(y,m-1+k,1);
+  const last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
+  t.setDate(Math.min(d,last));return iso(t);
+}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- cálculos ---------- */
+function sums(list){
+  const r={in:0,out:0,paid:0,open:0};
+  list.forEach(t=>{
+    if(t.kind==='receita')r.in+=t.val;else{r.out+=t.val;t.paid?r.paid+=t.val:r.open+=t.val}
+  });r.bal=r.in-r.out;return r;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const k=curKey();
+  $('#mlabel').textContent=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const month=tx.filter(t=>mkey(t.date)===k);
+  const P=sums(month.filter(t=>t.scope==='pessoal')),E=sums(month.filter(t=>t.scope==='empresa')),T=sums(month);
+  const sgn=v=>v>=0?'pos':'neg';
+  const card=(title,s,color)=>`<div class="card" style="${color?`border-top:4px solid ${color}`:'border-top:4px solid var(--tx)'}">
+    <h3>${title}</h3><div class="big ${sgn(s.bal)}">${brl(s.bal)}</div>
+    <div class="row"><span>Entradas</span><span class="pos">${brl(s.in)}</span></div>
+    <div class="row"><span>Gastos</span><span class="neg">${brl(s.out)}</span></div>
+    <div class="row"><span>↳ já pago</span><span>${brl(s.paid)}</span></div>
+    <div class="row"><span>↳ a pagar</span><span>${brl(s.open)}</span></div></div>`;
+  $('#cards').innerHTML=card('Total geral (pessoal + empresa)',T,'')+
+    card('🙋 Pessoal',P,'var(--pes)')+card('🏢 Empresa',E,'var(--emp)');
+
+  // donut por categoria (gastos, filtro atual)
+  const exp=month.filter(t=>t.kind==='gasto'&&(filter==='all'||t.scope===filter));
+  const byCat={};exp.forEach(t=>byCat[t.cat]=(byCat[t.cat]||0)+t.val);
+  const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const tot=entries.reduce((a,b)=>a+b[1],0);
+  if(!tot)$('#donut').innerHTML='<div class="empty" style="width:100%">Sem gastos neste mês</div>';
+  else{
+    let acc=0;const stops=entries.map(([c,v])=>{const a=acc/tot*100;acc+=v;return `${CATS[c]||'#999'} ${a}% ${acc/tot*100}%`});
+    $('#donut').innerHTML=`<div class="donut" style="background:conic-gradient(${stops.join(',')})"></div>
+      <div class="legend">${entries.map(([c,v])=>`<div><span><i class="dot" style="background:${CATS[c]||'#999'}"></i>${esc(c)}</span><b>${brl(v)}</b></div>`).join('')}</div>`;
+  }
+
+  // barras por dia
+  const days=new Date(cur.getFullYear(),cur.getMonth()+1,0).getDate();
+  const dp=Array(days).fill(0),de=Array(days).fill(0);
+  month.filter(t=>t.kind==='gasto').forEach(t=>{const d=+t.date.slice(8)-1;(t.scope==='pessoal'?dp:de)[d]+=t.val});
+  const mx=Math.max(1,...dp.map((v,i)=>v+de[i]));
+  $('#bars').innerHTML=`<div class="bars">${dp.map((v,i)=>`<div title="Dia ${i+1}: ${brl(v+de[i])}">
+    <i style="height:${de[i]/mx*100}%;background:var(--emp)"></i><i style="height:${v/mx*100}%;background:var(--pes)"></i></div>`).join('')}</div>
+    <div class="axis"><span>1</span><span>${Math.ceil(days/2)}</span><span>${days}</span></div>
+    <div class="row" style="justify-content:flex-start;gap:16px"><span><i class="dot" style="background:var(--pes)"></i>Pessoal</span><span><i class="dot" style="background:var(--emp)"></i>Empresa</span></div>`;
+
+  // próximas
+  const up=tx.filter(t=>t.kind==='gasto'&&!t.paid).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,12);
+  const upTot=tx.filter(t=>t.kind==='gasto'&&!t.paid).reduce((a,t)=>a+t.val,0);
+  $('#upcoming').innerHTML=up.length?up.map(t=>`<div class="up"><div><b>${esc(t.desc)}</b>
+    <small class="${t.date<today?'late':''}">${t.date<today?'⚠ Atrasado · ':''}${fmtDate(t.date)}/${t.date.slice(2,4)} · ${t.scope==='pessoal'?'Pessoal':'Empresa'}</small></div>
+    <div style="text-align:right"><b>${brl(t.val)}</b><br><button class="ghost" onclick="pay('${t.id}')">✔ pagar</button></div></div>`).join('')+
+    `<div class="row" style="margin-top:10px"><span>Total em aberto (todos os meses)</span><span class="neg">${brl(upTot)}</span></div>`
+    :'<div class="empty">Nada pendente 🎉</div>';
+
+  // lista
+  const list=month.filter(t=>filter==='all'||t.scope===filter).sort((a,b)=>b.date.localeCompare(a.date));
+  $('#list').innerHTML=list.length?`<table><thead><tr><th>Dia</th><th>Descrição</th><th>Cat.</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>`+
+    list.map(t=>`<tr><td>${t.date.slice(8)}</td>
+      <td>${t.scope==='pessoal'?'🙋':'🏢'} ${esc(t.desc)}${t.n>1?` <small>(${t.i}/${t.n})</small>`:''}<br><small style="color:var(--mut)">${esc(t.pay||'')}${t.kind==='gasto'&&!t.paid?' · <b class="late">em aberto</b>':''}</small></td>
+      <td><span class="tag" style="background:${CATS[t.cat]||'#999'}">${esc(t.cat)}</span></td>
+      <td class="v ${t.kind==='receita'?'pos':'neg'}">${t.kind==='receita'?'+':'−'} ${brl(t.val)}</td>
+      <td class="v"><button class="ghost" title="Editar" onclick="edit('${t.id}')">✏️</button><button class="ghost" title="Excluir" onclick="del('${t.id}')">🗑</button></td></tr>`).join('')+'</tbody></table>'
+    :'<div class="empty">Nenhum lançamento. Clique em “+ Novo lançamento”.</div>';
+}
+
+/* ---------- ações ---------- */
+function pay(id){const t=tx.find(x=>x.id===id);if(t){t.paid=true;save();render()}}
+function del(id){
+  const t=tx.find(x=>x.id===id);if(!t)return;
+  if(t.gid&&tx.filter(x=>x.gid===t.gid).length>1){
+    if(confirm('Excluir TODAS as parcelas desta compra?\nOK = todas · Cancelar = só esta'))tx=tx.filter(x=>x.gid!==t.gid);
+    else tx=tx.filter(x=>x.id!==id);
+  }else if(!confirm('Excluir este lançamento?'))return;
+  else tx=tx.filter(x=>x.id!==id);
+  save();render();
+}
+const dlg=$('#dlg'),f=$('#form');
+f.cat.innerHTML=Object.keys(CATS).map(c=>`<option>${c}</option>`).join('');
+function openForm(t){
+  editing=t||null;f.reset();
+  $('#dtitle').textContent=t?'Editar lançamento':'Novo lançamento';
+  $('#parcbox').style.display=t?'none':'grid';
+  const d=new Date();if(iso(cur).slice(0,7)!==iso(d).slice(0,7))d.setTime(cur.getTime());
+  f.date.value=t?t.date:iso(d);
+  if(t){f.kind.value=t.kind;f.scope.value=t.scope;f.desc.value=t.desc;f.val.value=t.val;f.cat.value=t.cat;f.pay.value=t.pay||f.pay.value}
+  dlg.showModal();
+}
+function edit(id){openForm(tx.find(x=>x.id===id))}
+f.addEventListener('submit',e=>{
+  e.preventDefault();
+  const kind=f.kind.value,scope=f.scope.value,desc=f.desc.value.trim();
+  let val=parseFloat(f.val.value);if(!desc||!(val>0))return;
+  const cat=kind==='receita'?'Receita':f.cat.value;
+  if(editing){
+    Object.assign(editing,{kind,scope,desc,val,date:f.date.value,cat,pay:f.pay.value});
+    if(kind==='receita')editing.paid=true;
+  }else{
+    const n=Math.max(1,Math.min(60,parseInt(f.n.value)||1));
+    if(n>1&&f.mode.value==='total')val=Math.round(val/n*100)/100;
+    const gid=uid();
+    for(let i=0;i<n;i++){
+      const date=addMonths(f.date.value,i);
+      tx.push({id:uid(),gid,i:i+1,n,kind,scope,desc,val,date,cat,pay:f.pay.value,paid:kind==='receita'||date<=today});
+    }
+  }
+  save();dlg.close();render();
+});
+$('#cancel').onclick=()=>dlg.close();
+$('#add').onclick=()=>openForm();
+$('#prev').onclick=()=>{cur.setMonth(cur.getMonth()-1);render()};
+$('#next').onclick=()=>{cur.setMonth(cur.getMonth()+1);render()};
+$('#tabs').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  filter=b.dataset.f;[...$('#tabs').children].forEach(x=>x.classList.toggle('on',x===b));render();
+};
+$('#exp').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(tx,null,1)],{type:'application/json'}));
+  a.download=`financeiro-${today}.json`;a.click();
+};
+$('#imp').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{
+  const r=new FileReader();
+  r.onload=()=>{
+    try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;
+      if(confirm('Isso substitui os dados atuais. Continuar?')){tx=d;save();render()}
+    }catch(_){alert('Arquivo inválido.')}
+  };
+  if(e.target.files[0])r.readAsText(e.target.files[0]);e.target.value='';
+};
+render();
+</script>
+</body>
+</html>
