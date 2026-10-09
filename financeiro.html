@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Altta Financeiro</title>
+<title>Arthur Financeiro</title>
 <style>
-/* ===== PALETA ALTTA — troque só estes valores para mudar o visual todo ===== */
+/* ===== PALETA — troque só estes valores para mudar o visual todo ===== */
 :root{
   --bg:#080e1f;          /* fundo da página */
   --card:#0f172b;        /* cartões */
@@ -180,7 +180,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
 <body>
 <div class="wrap">
   <header>
-    <div class="logo"><i>A</i>Altta Financeiro</div>
+    <div class="logo"><i>A</i>Arthur Financeiro</div>
     <div style="display:flex;gap:8px;align-items:center"><button id="pdf" title="Exportar relatório do mês em PDF">📄 PDF</button><button id="theme" title="Alternar claro/escuro">🌙</button><div class="month"><button class="ghost" id="prev">◀</button><b id="mlabel"></b><button class="ghost" id="next">▶</button></div></div>
   </header>
 
@@ -658,7 +658,7 @@ function buildReport(){
   const as=(()=>{const mm={};inv.forEach(x=>{const a=mm[x.asset.toLowerCase()]??={name:x.asset,type:x.type,scope:x.scope,net:0};a.net+=x.kind==='aporte'?x.val:-x.val});return Object.values(mm)})();
   const invMonth=inv.filter(x=>mkey(x.date)===k);
   $('#report').innerHTML=`
-  <h1>Altta Financeiro — ${label.charAt(0).toUpperCase()+label.slice(1)}</h1>
+  <h1>Arthur Financeiro — ${label.charAt(0).toUpperCase()+label.slice(1)}</h1>
   <div class="sub">Relatório gerado em ${fd(today)} · Pessoal + Empresa</div>
   <div class="kp">
     <div><small>Entradas do mês</small><b class="pos">${brl(inc)}</b></div>
