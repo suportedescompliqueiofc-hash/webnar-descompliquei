@@ -142,6 +142,28 @@ td small,.sm{color:var(--mut);font-size:12px}
 @media(max-width:900px){.invrow{grid-template-columns:1fr 1fr}.invrow #iasset{grid-column:1/-1}}
 .invrow2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 td input.cur{width:130px;text-align:right;padding:6px 8px}
+#report{display:none}
+@media print{
+  @page{margin:14mm}
+  body>*:not(#report){display:none!important}
+  body{background:#fff!important;color:#111!important}
+  #report{display:block;font:12px/1.4 system-ui,Segoe UI,Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #report h1{font-size:20px;margin:0}
+  #report h2{font-size:13px;margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #2f6df0;color:#1d3a8a;text-transform:uppercase;letter-spacing:.04em;break-after:avoid}
+  #report .sub{color:#555;margin:2px 0 10px}
+  #report table{width:100%;border-collapse:collapse;break-inside:auto}
+  #report tr{break-inside:avoid}
+  #report th{background:#eef2fb;color:#333;font-size:11px;text-align:left;padding:5px 6px}
+  #report td{padding:5px 6px;border-bottom:1px solid #e3e6ee;font-size:12px}
+  #report td.r,#report th.r{text-align:right;white-space:nowrap}
+  #report .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}
+  #report .kp div{border:1px solid #d6dbe8;border-radius:8px;padding:8px}
+  #report .kp small{display:block;color:#666;font-size:10px}
+  #report .kp b{font-size:15px}
+  #report .neg{color:#c0123c}#report .pos{color:#0b7a53}
+  #report .ok{color:#0b7a53;font-weight:700}#report .op{color:#b45309;font-weight:700}#report .lt{color:#c0123c;font-weight:700}
+  #report tfoot td{font-weight:700;background:#f6f8fc}
+}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--pos);color:#032b1c;padding:10px 18px;border-radius:99px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:9}
 .toast.show{opacity:1}
 dialog{border:1px solid var(--bd);border-radius:16px;padding:20px;width:min(420px,94vw);background:var(--card);color:var(--tx)}
@@ -159,7 +181,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
 <div class="wrap">
   <header>
     <div class="logo"><i>A</i>Altta Financeiro</div>
-    <div style="display:flex;gap:8px;align-items:center"><button id="theme" title="Alternar claro/escuro">🌙</button><div class="month"><button class="ghost" id="prev">◀</button><b id="mlabel"></b><button class="ghost" id="next">▶</button></div></div>
+    <div style="display:flex;gap:8px;align-items:center"><button id="pdf" title="Exportar relatório do mês em PDF">📄 PDF</button><button id="theme" title="Alternar claro/escuro">🌙</button><div class="month"><button class="ghost" id="prev">◀</button><b id="mlabel"></b><button class="ghost" id="next">▶</button></div></div>
   </header>
 
   <!-- RESUMO -->
@@ -239,6 +261,7 @@ input:focus,select:focus{outline:2px solid var(--brand);outline-offset:0}
     <span>Dados salvos só neste navegador. Faça backup de vez em quando.</span>
   </div>
 </div>
+<div id="report"></div>
 <div class="toast" id="toast"></div>
 
 <dialog id="dlg">
@@ -615,6 +638,50 @@ function renderBills(){
   <div class="sub-h">📌 A pagar neste mês (${openM.length})</div>${openM.map(row).join('')||'<div class="empty">Nada a pagar neste mês 🎉<br><span class="sm">Parcelas e contas marcadas como “conta a pagar” aparecem aqui.</span></div>'}
   ${doneM.length?`<div class="sub-h">✅ Já pagas (${doneM.length})</div>${doneM.map(row).join('')}`:''}`;
 }
+
+/* ---------- exportar PDF (relatório do mês) ---------- */
+function buildReport(){
+  const k=curKey(),label=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const m=tx.filter(t=>mkey(t.date)===k);
+  const sc=t=>t.scope==='pessoal'?'Pessoal':'Empresa';
+  const inc=sumOf(m.filter(t=>t.kind==='receita')),outs=m.filter(t=>t.kind==='gasto');
+  const out=sumOf(outs),op=openList();
+  const tbl=(head,rows,foot)=>`<table><thead><tr>${head.map(h=>`<th class="${h[1]||''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${head.length}" style="color:#777">Nada neste período.</td></tr>`}</tbody>${foot?`<tfoot><tr>${foot}</tr></tfoot>`:''}</table>`;
+  // contas do mês
+  const bills=m.filter(t=>t.kind==='gasto'&&(t.bill||t.n>1||!t.paid)).sort((a,b)=>a.date.localeCompare(b.date));
+  const st=t=>t.paid?'<span class="ok">✔ Pago</span>':t.date<today?'<span class="lt">Atrasada</span>':'<span class="op">A pagar</span>';
+  const bTot=sumOf(bills),bRest=sumOf(bills.filter(t=>!t.paid));
+  // dívidas por compra
+  const g={};op.forEach(t=>(g[t.gid||t.id]??=[]).push(t));
+  const debts=Object.values(g).map(a=>a.sort((x,y)=>x.date.localeCompare(y.date)));
+  // investimentos
+  const as=(()=>{const mm={};inv.forEach(x=>{const a=mm[x.asset.toLowerCase()]??={name:x.asset,type:x.type,scope:x.scope,net:0};a.net+=x.kind==='aporte'?x.val:-x.val});return Object.values(mm)})();
+  const invMonth=inv.filter(x=>mkey(x.date)===k);
+  $('#report').innerHTML=`
+  <h1>Altta Financeiro — ${label.charAt(0).toUpperCase()+label.slice(1)}</h1>
+  <div class="sub">Relatório gerado em ${fd(today)} · Pessoal + Empresa</div>
+  <div class="kp">
+    <div><small>Entradas do mês</small><b class="pos">${brl(inc)}</b></div>
+    <div><small>Gastos do mês</small><b class="neg">${brl(out)}</b></div>
+    <div><small>Saldo do mês</small><b class="${inc-out>=0?'pos':'neg'}">${brl(inc-out)}</b></div>
+    <div><small>Dívida total em aberto</small><b class="neg">${brl(sumOf(op))}</b></div>
+  </div>
+  ${tbl([['Quem'],['Entradas','r'],['Gastos','r'],['Saldo','r']],['pessoal','empresa'].map(s=>{
+    const i=sumOf(m.filter(t=>t.kind==='receita'&&t.scope===s)),o=sumOf(outs.filter(t=>t.scope===s));
+    return `<tr><td>${s==='pessoal'?'Pessoal':'Empresa'}</td><td class="r">${brl(i)}</td><td class="r">${brl(o)}</td><td class="r">${brl(i-o)}</td></tr>`}))}
+  <h2>Contas a pagar do mês</h2>
+  ${tbl([['Vencimento'],['Conta'],['Quem'],['Valor','r'],['Situação']],bills.map(t=>`<tr><td>${fd(t.date)}</td><td>${esc(t.desc)}${t.n>1?` (${t.i}/${t.n})`:''}</td><td>${sc(t)}</td><td class="r">${brl(t.val)}</td><td>${st(t)}</td></tr>`),
+    `<td colspan="3">Total · falta pagar ${brl(bRest)}</td><td class="r">${brl(bTot)}</td><td></td>`)}
+  <h2>Todos os lançamentos do mês</h2>
+  ${tbl([['Data'],['Descrição'],['Categoria'],['Quem'],['Valor','r']],[...m].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>`<tr><td>${fd(t.date)}</td><td>${esc(t.desc)}${t.n>1?` (${t.i}/${t.n})`:''}</td><td>${esc(t.cat)}</td><td>${sc(t)}</td><td class="r ${t.kind==='receita'?'pos':'neg'}">${t.kind==='receita'?'+':'−'} ${brl(t.val)}</td></tr>`))}
+  <h2>Dívidas em aberto (todas as parcelas)</h2>
+  ${tbl([['Compra'],['Quem'],['Parcelas'],['Próxima'],['Falta pagar','r']],debts.map(a=>{const f=a[0];return `<tr><td>${esc(f.desc)}</td><td>${sc(f)}</td><td>${f.n>1?`${f.n-a.length}/${f.n} pagas · ${a.length} restantes de ${brl(f.val)}`:'à vista'}</td><td>${fd(a[0].date)}</td><td class="r">${brl(sumOf(a))}</td></tr>`}),
+    `<td colspan="4">Total da dívida</td><td class="r">${brl(sumOf(op))}</td>`)}
+  <h2>Investimentos</h2>
+  ${tbl([['Ativo'],['Tipo'],['Quem'],['Total aportado','r']],as.map(a=>`<tr><td>${esc(a.name)}</td><td>${esc(a.type)}</td><td>${sc(a)}</td><td class="r">${brl(a.net)}</td></tr>`),
+    `<td colspan="3">Total aportado · no mês: ${brl(invMonth.reduce((x,y)=>x+(y.kind==='aporte'?y.val:-y.val),0))}</td><td class="r">${brl(sumOf2(as,'net'))}</td>`)}`;
+}
+$('#pdf').onclick=()=>{buildReport();const t=document.title;document.title=`financeiro-${curKey()}`;window.print();document.title=t};
 
 /* ---------- tema claro / escuro ---------- */
 const THEME='financeiro_theme';
