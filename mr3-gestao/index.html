@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MR3 Gestão</title>
+  <meta name="description" content="Sistema de gestão MR3 — Fabio Nascimento: atletas, agenda, sessões, financeiro e retenção.">
+  <meta name="theme-color" content="#0A1428">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230A1428'/%3E%3Ctext x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='Arial,sans-serif' font-weight='800' font-size='26' fill='%23F2F5FA'%3EMR%3Ctspan fill='%23D4AF37'%3E3%3C/tspan%3E%3C/text%3E%3C/svg%3E">
+
+  <!-- Aplica o tema antes da primeira pintura (evita "piscar") -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('mr3:tema');
+        if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+
+  <div class="app" id="app">
+    <!-- Sidebar (desktop) / drawer (mobile) -->
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal">
+      <div class="brand">
+        <div class="brand-logo">MR<span>3</span></div>
+        <div class="brand-sub">Fabio Nascimento</div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="sidebar-foot">
+        <span class="muted small" id="sidebar-version"></span>
+      </div>
+    </aside>
+    <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+
+    <div class="main-wrap">
+      <header class="topbar">
+        <button class="icon-btn only-mobile" id="btn-menu" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="topbar-brand only-mobile" aria-hidden="true">MR<span>3</span></div>
+        <div class="global-search" role="search">
+          <i data-lucide="search" class="gs-icon"></i>
+          <label for="global-search" class="sr-only">Buscar atleta</label>
+          <input id="global-search" type="search" placeholder="Buscar atleta…  ( / )" autocomplete="off" aria-autocomplete="list" aria-controls="global-search-results">
+          <div class="gs-results" id="global-search-results" role="listbox" hidden></div>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="btn-theme" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+            <i data-lucide="sun"></i>
+          </button>
+        </div>
+      </header>
+
+      <div id="banner-area"></div>
+
+      <main id="main" class="content" tabindex="-1"></main>
+    </div>
+
+    <!-- Navegação inferior (mobile) -->
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Navegação rápida"></nav>
+  </div>
+
+  <div class="toast-area" id="toast-area" aria-live="polite" aria-atomic="false"></div>
+  <div id="modal-root"></div>
+  <div id="print-area" aria-hidden="true"></div>
+
+  <!-- Bibliotecas via CDN (versões fixas) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+  <!-- Aplicação (scripts clássicos: funciona abrindo o index.html direto, sem servidor) -->
+  <script src="js/utils.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/domain.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="js/modules/dashboard.js"></script>
+  <script src="js/modules/atletas.js"></script>
+  <script src="js/modules/agenda.js"></script>
+  <script src="js/modules/sessoes.js"></script>
+  <script src="js/modules/financeiro.js"></script>
+  <script src="js/modules/relatorios.js"></script>
+  <script src="js/modules/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
