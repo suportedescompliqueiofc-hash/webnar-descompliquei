@@ -82,7 +82,7 @@
       </div>
 
       <div class="grid grid-2 mb-3">
-        <div class="card"><div class="card-head"><h2>${UI.icon('wallet')}Recebido × despesas</h2></div><div class="card-body"><div class="chart-box" id="ch-fin"></div></div></div>
+        <div class="card"><div class="card-head"><h2>${UI.icon('wallet')}Previsto × recebido</h2></div><div class="card-body"><div class="chart-box" id="ch-fin"></div></div></div>
         <div class="card"><div class="card-head"><h2>${UI.icon('alert-triangle')}Inadimplência ao longo do tempo</h2></div><div class="card-body"><div class="chart-box" id="ch-inad"></div>
           <p class="muted tiny mt-2">Saldo de cobranças vencidas e não pagas no último dia de cada mês.</p></div></div>
       </div>
@@ -97,9 +97,9 @@
       </div>
 
       <div class="card mt-3"><div class="card-head"><h2>${UI.icon('table')}Indicadores mês a mês</h2></div>
-        <div class="table-wrap"><table class="table"><thead><tr><th>Mês</th><th class="right">Ativos no início</th><th class="right">Novos</th><th class="right">Reativ.</th><th class="right">Saídas</th><th class="right">Churn</th><th class="right">MRR</th><th class="right">Recebido</th><th class="right">Despesas</th><th class="right">Inadimpl.</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="table"><thead><tr><th>Mês</th><th class="right">Ativos no início</th><th class="right">Novos</th><th class="right">Reativ.</th><th class="right">Saídas</th><th class="right">Churn</th><th class="right">MRR</th><th class="right">Previsto</th><th class="right">Recebido</th><th class="right">Inadimpl.</th></tr></thead><tbody>
         ${meses.map((m, i) => `<tr><td class="nowrap">${U.monthShort(m)}</td><td class="right num">${churns[i].ativosInicio}</td><td class="right num">${churns[i].novos}</td><td class="right num">${churns[i].reativacoes}</td><td class="right num">${churns[i].saidas}</td>
-          <td class="right num ${churns[i].taxa > 0.05 ? 'text-danger' : ''}">${U.fmtPct(churns[i].taxa)}</td><td class="right num">${U.fmtMoney(mrrs[i])}</td><td class="right num">${U.fmtMoney(resumos[i].recebido)}</td><td class="right num">${U.fmtMoney(resumos[i].despesas)}</td><td class="right num">${U.fmtMoney(inads[i])}</td></tr>`).reverse().join('')}
+          <td class="right num ${churns[i].taxa > 0.05 ? 'text-danger' : ''}">${U.fmtPct(churns[i].taxa)}</td><td class="right num">${U.fmtMoney(mrrs[i])}</td><td class="right num">${U.fmtMoney(resumos[i].previsto)}</td><td class="right num">${U.fmtMoney(resumos[i].recebido)}</td><td class="right num">${U.fmtMoney(inads[i])}</td></tr>`).reverse().join('')}
         </tbody></table></div></div>`;
 
     /* ---------- Gráficos ---------- */
@@ -146,9 +146,8 @@
     UI.chart(body.querySelector('#ch-fin'), {
       type: 'bar',
       data: { labels, datasets: [
+        { label: 'Previsto', data: resumos.map((x) => x.previsto), backgroundColor: c.primary + '55', borderColor: c.primary, borderWidth: 1, borderRadius: 4, maxBarThickness: 26 },
         { label: 'Recebido', data: resumos.map((x) => x.recebido), backgroundColor: c.gold, borderRadius: 4, maxBarThickness: 26 },
-        { label: 'Despesas', data: resumos.map((x) => x.despesas), backgroundColor: c.danger + 'AA', borderRadius: 4, maxBarThickness: 26 },
-        { type: 'line', label: 'Líquido', data: resumos.map((x) => x.liquido), borderColor: c.primary, backgroundColor: c.primary, tension: .3, pointRadius: 3 },
       ] },
       options: { scales: { y: { ticks: { callback: UI.moneyTick } } }, plugins: { tooltip: { callbacks: { label: (x) => ` ${x.dataset.label}: ${U.fmtMoney(x.raw)}` } } } },
     });

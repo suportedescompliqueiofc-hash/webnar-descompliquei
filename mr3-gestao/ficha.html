@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ficha MR3</title>
+  <meta name="claude:viewport-fit-sides" content="cover">
+  <meta name="description" content="Ficha de cadastro e anamnese do atleta — MR3 · Fabio Nascimento.">
+  <meta name="theme-color" content="#0A1428">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('mr3:tema');
+        if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="ficha-page">
+  <header class="ficha-hero">
+    <div class="ficha-hero-inner">
+      <div class="brand-logo">MR<span>3</span></div>
+      <p class="eyebrow" id="fh-prof">Fabio Nascimento</p>
+      <h1>Ficha de cadastro do atleta</h1>
+      <p class="muted">Leva uns 5 minutos. As respostas ajudam a montar treinos seguros e sob medida. Campos com <span class="req">*</span> são obrigatórios.</p>
+      <div class="ficha-progress" aria-hidden="true"><span id="fh-bar"></span></div>
+    </div>
+  </header>
+
+  <main class="ficha-main">
+    <form id="ficha" novalidate></form>
+    <section id="ficha-ok" class="ficha-ok card" hidden aria-live="polite"></section>
+  </main>
+
+  <div class="ficha-bar" id="ficha-actions">
+    <span class="muted small" id="fh-status">Rascunho salvo neste aparelho</span>
+    <button type="submit" form="ficha" class="btn btn-gold">Revisar e enviar</button>
+  </div>
+
+  <div class="toast-area" id="toast-area" aria-live="polite"></div>
+  <div id="modal-root"></div>
+
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/ficha-campos.js"></script>
+  <script>
+  /* Página pública da ficha: o atleta/responsável preenche e envia pelo WhatsApp.
+     Parâmetros opcionais: ?w=5511999999999 (WhatsApp do profissional) &n=Nome &e=Empresa
+     Sem parâmetros, usa os dados do sistema salvos neste navegador (preenchimento presencial). */
+  (function () {
+    'use strict';
+    const { U, UI, Ficha } = window.MR3;
+    const esc = U.esc;
+    const DRAFT = 'mr3:ficha-rascunho';
+    const qs = new URLSearchParams(location.search);
+    let cfg = {};
+    try { cfg = (JSON.parse(localStorage.getItem('mr3:data') || '{}').config) || {}; } catch (e) { /* sem sistema neste aparelho */ }
+    const noSistema = !!cfg.nomeProfissional; // aberto no mesmo navegador do sistema
+    const prof = qs.get('n') || cfg.nomeProfissional || 'Fabio Nascimento';
+    const empresa = qs.get('e') || cfg.empresa || 'MR3';
+    const wa = U.phoneToWa(qs.get('w') || cfg.telefone || '');
+    document.getElementById('fh-prof').textContent = `${empresa} · ${prof}`;
+
+    const form = document.getElementById('ficha');
+    let draft = {};
+    try { draft = JSON.parse(localStorage.getItem(DRAFT) || '{}'); } catch (e) { draft = {}; }
+    if (qs.get('a') && !draft.nome) draft.nome = qs.get('a');
+    form.innerHTML = Ficha.formHtml(draft);
+    Ficha.bind(form);
+    UI.bindMasks(form);
+    UI.refreshIcons();
+
+    // Progresso + rascunho automático
+    const bar = document.getElementById('fh-bar');
+    const reqs = Ficha.CAMPOS.filter((c) => c.req);
+    const progress = () => {
+      const d = Ficha.read(form);
+      const ativos = reqs.filter((c) => c.secao !== 'responsavel' || Ficha.isMenor(d));
+      const ok = ativos.filter((c) => { const v = d[c.n]; return v && !(Array.isArray(v) && !v.length); }).length;
+      bar.style.width = `${Math.round((ok / ativos.length) * 100)}%`;
+      try { localStorage.setItem(DRAFT, JSON.stringify(d)); } catch (e) { /* ignore */ }
+    };
+    form.addEventListener('input', U.debounce(progress, 250));
+    form.addEventListener('change', progress);
+    progress();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = Ficha.read(form);
+      if (!Ficha.showErrors(form, Ficha.validate(d))) { UI.toast('Confira os campos destacados.', 'error'); return; }
+      concluir(d);
+    });
+
+    function concluir(d) {
+      const texto = Ficha.resumo(d);
+      const link = `https://wa.me/${wa}?text=${encodeURIComponent(texto)}`;
+      const ok = document.getElementById('ficha-ok');
+      form.hidden = true;
+      document.getElementById('ficha-actions').hidden = true;
+      ok.hidden = false;
+      ok.innerHTML = `
+        <div class="ficha-ok-icon">${UI.icon('check')}</div>
+        <h2>Quase lá, ${esc(U.firstName(d.nome))}!</h2>
+        <p class="muted">Falta só enviar. Toque no botão abaixo: o WhatsApp abre com a ficha pronta${wa ? ` para ${esc(prof)}` : ''}. É só apertar enviar.</p>
+        <div class="stack mt-3">
+          <a class="btn btn-wa btn-lg btn-block" href="${esc(link)}" target="_blank" rel="noopener">${UI.icon('message-circle')}Enviar pelo WhatsApp</a>
+          ${noSistema ? `<button class="btn btn-gold btn-lg btn-block" id="ok-sistema">${UI.icon('inbox')}Salvar direto no sistema</button>` : ''}
+          <button class="btn btn-block" id="ok-copiar">${UI.icon('copy')}Copiar ficha</button>
+          <button class="btn btn-ghost btn-block" id="ok-editar">${UI.icon('pencil')}Voltar e corrigir</button>
+        </div>
+        <details class="mt-3"><summary class="muted small">Ver o texto que será enviado</summary><textarea class="input mt-2" rows="8" readonly id="ok-texto">${esc(texto)}</textarea></details>`;
+      UI.refreshIcons(ok);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      ok.querySelector('#ok-editar').onclick = () => { ok.hidden = true; form.hidden = false; document.getElementById('ficha-actions').hidden = false; };
+      ok.querySelector('#ok-copiar').onclick = async () => {
+        try { await navigator.clipboard.writeText(texto); UI.toast('Ficha copiada. Cole na conversa do WhatsApp.'); }
+        catch (e) { const t = ok.querySelector('#ok-texto'); ok.querySelector('details').open = true; t.select(); UI.toast('Selecionei o texto: copie e cole no WhatsApp.', 'info'); }
+      };
+      const sis = ok.querySelector('#ok-sistema');
+      if (sis) sis.onclick = () => {
+        try {
+          const fila = JSON.parse(localStorage.getItem('mr3:fichas-entrada') || '[]');
+          fila.push(Object.assign({ enviadaEm: U.today() }, d));
+          localStorage.setItem('mr3:fichas-entrada', JSON.stringify(fila));
+          localStorage.removeItem(DRAFT);
+          location.href = 'index.html#/fichas';
+        } catch (e) { UI.toast('Não foi possível salvar. Use o WhatsApp ou copie a ficha.', 'error'); }
+      };
+      try { localStorage.removeItem(DRAFT); } catch (e) { /* ignore */ }
+    }
+  })();
+  </script>
+</body>
+</html>

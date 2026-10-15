@@ -19,8 +19,8 @@
   const U = MR3.U;
 
   const STORAGE_KEY = 'mr3:data';
-  const SCHEMA_VERSION = 2;
-  const COLLECTIONS = ['atletas', 'planos', 'sessoes', 'cobrancas', 'despesas', 'avaliacoes'];
+  const SCHEMA_VERSION = 3;
+  const COLLECTIONS = ['atletas', 'planos', 'sessoes', 'cobrancas', 'avaliacoes', 'materiais', 'fichas'];
 
   const DEFAULT_CONFIG = {
     nomeProfissional: 'Fabio Nascimento',
@@ -37,7 +37,9 @@
     modalidades: ['Futebol', 'Vôlei', 'Basquete', 'Tênis', 'Corrida', 'Natação', 'Futsal', 'Beach Tennis'],
     faltaDescontaPacote: true,
     alertaSaldoPacote: 2,
+    fichaUrl: '', // endereço público do ficha.html (para enviar aos atletas)
     mensagens: {
+      ficha: 'Olá! Para começarmos os treinos, preencha sua ficha de cadastro (leva uns 5 minutos):\n{link}\n\nAo terminar, toque em "Enviar pelo WhatsApp". Obrigado!\n{profissional} — {empresa}',
       cobranca: 'Olá, {nome}! Tudo bem? 😊\nPassando para lembrar da sua mensalidade *{referencia}* no valor de *{valor}*, com vencimento em *{vencimento}*.\n\nChave Pix: {pix}\n\nQualquer dúvida estou à disposição. Obrigado!\n{profissional} — {empresa}',
       atraso: 'Olá, {nome}! Tudo bem?\nIdentifiquei que o pagamento *{referencia}* no valor de *{valor}*, vencido em *{vencimento}*, ainda está em aberto.\n\nChave Pix: {pix}\n\nSe já pagou, por favor me envie o comprovante. Obrigado!\n{profissional}',
       lembrete: 'Olá, {nome}! Lembrete da sua sessão *{data}* às *{hora}* — {local}. Até lá! 💪\n{profissional}',
@@ -47,7 +49,7 @@
 
   const emptyData = () => ({
     schemaVersion: SCHEMA_VERSION,
-    atletas: [], planos: [], sessoes: [], cobrancas: [], despesas: [], avaliacoes: [],
+    atletas: [], planos: [], sessoes: [], cobrancas: [], avaliacoes: [], materiais: [], fichas: [],
     config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)),
     meta: { ultimoBackup: null, criadoEm: U.nowISO(), demo: false },
   });
@@ -75,6 +77,13 @@
           if (a.status === 'inativo') a.historicoStatus.push({ status: 'inativo', data: U.tsToDate(a.atualizadoEm) || U.today(), motivo: 'outro', observacao: 'Migrado' });
         }
       });
+      return d;
+    },
+    // v2 -> v3: remove despesas; adiciona materiais e fichas de cadastro
+    3(d) {
+      delete d.despesas;
+      if (!Array.isArray(d.materiais)) d.materiais = [];
+      if (!Array.isArray(d.fichas)) d.fichas = [];
       return d;
     },
   };

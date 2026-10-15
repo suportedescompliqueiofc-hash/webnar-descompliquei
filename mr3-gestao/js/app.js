@@ -14,13 +14,23 @@
     { route: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
     { route: 'agenda', label: 'Agenda', icon: 'calendar-days' },
     { route: 'atletas', label: 'Atletas', icon: 'users' },
+    { route: 'fichas', label: 'Fichas de cadastro', icon: 'clipboard-pen', badge: () => Store.query('fichas', { status: 'pendente' }).length },
+    { route: 'materiais', label: 'Materiais', icon: 'folder-open' },
     { route: 'sessoes', label: 'Planos e sessões', icon: 'clipboard-list' },
     { route: 'financeiro', label: 'Financeiro', icon: 'wallet' },
     { route: 'relatorios', label: 'Relatórios', icon: 'bar-chart-3' },
     { sep: true },
     { route: 'config', label: 'Configurações', icon: 'settings' },
   ];
-  const BOTTOM = ['dashboard', 'agenda', 'atletas', 'financeiro'];
+  const BOTTOM = ['dashboard', 'agenda', '+', 'atletas', 'financeiro'];
+  const SHORT = { dashboard: 'Início', agenda: 'Agenda', atletas: 'Atletas', financeiro: 'Financeiro' };
+  const QUICK = [
+    { icon: 'calendar-plus', label: 'Nova sessão', run: () => MR3.Agenda.openSessao({ data: U.today() }) },
+    { icon: 'user-plus', label: 'Novo atleta', run: () => MR3.Atletas.openForm() },
+    { icon: 'banknote', label: 'Registrar pagamento', run: () => { location.hash = '#/financeiro'; } },
+    { icon: 'send', label: 'Enviar ficha de cadastro', run: () => MR3.Fichas.enviar() },
+    { icon: 'upload', label: 'Adicionar material', run: () => MR3.Materiais.openForm() },
+  ];
 
   let currentRoute = null;
 
@@ -59,6 +69,7 @@
     }
     UI.refreshIcons(main);
     UI.bindMasks(main);
+    UI.stackTables(main);
     if (changedRoute) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); }
     renderBanner();
   }
@@ -74,13 +85,17 @@
 
   /* ---------------- Layout ---------------- */
   function renderNav() {
-    document.getElementById('nav').innerHTML = NAV.map((n) => n.sep ? '<div class="nav-sep"></div>' :
-      `<a href="#/${n.route}" data-route="${n.route}">${UI.icon(n.icon)}<span>${n.label}</span></a>`).join('');
+    document.getElementById('nav').innerHTML = NAV.map((n) => {
+      if (n.sep) return '<div class="nav-sep"></div>';
+      const b = n.badge ? n.badge() : 0;
+      return `<a href="#/${n.route}" data-route="${n.route}">${UI.icon(n.icon)}<span>${n.label}</span>${b ? `<span class="count-pill">${b}</span>` : ''}</a>`;
+    }).join('');
     document.getElementById('bottom-nav').innerHTML = BOTTOM.map((r) => {
+      if (r === '+') return `<button type="button" class="bn-fab" id="bn-fab" aria-label="Ações rápidas" aria-haspopup="dialog">${UI.icon('plus')}</button>`;
       const n = NAV.find((x) => x.route === r);
-      return `<a href="#/${r}" data-route="${r}">${UI.icon(n.icon)}<span>${n.label.split(' ')[0]}</span></a>`;
-    }).join('') + `<button type="button" id="bn-more" aria-label="Mais opções">${UI.icon('menu')}<span>Mais</span></button>`;
-    document.getElementById('sidebar-version').textContent = `v1.0 · schema ${Store.SCHEMA_VERSION}`;
+      return `<a href="#/${r}" data-route="${r}">${UI.icon(n.icon)}<span>${SHORT[r]}</span></a>`;
+    }).join('');
+    document.getElementById('sidebar-version').textContent = `v2.0 · schema ${Store.SCHEMA_VERSION}`;
   }
   function setActiveNav(route) {
     document.querySelectorAll('[data-route]').forEach((a) => {
@@ -176,6 +191,15 @@
     document.addEventListener('click', (e) => { if (!e.target.closest('.global-search')) closeSearch(); });
   }
 
+  /* ---------------- Ações rápidas (botão + do celular) ---------------- */
+  function quickActions() {
+    UI.modal({
+      title: 'O que você quer fazer?', size: 'sm',
+      body: `<div class="quick-grid">${QUICK.map((q, i) => `<button type="button" class="quick-item" data-q="${i}">${UI.icon(q.icon)}<span>${q.label}</span></button>`).join('')}</div>`,
+      onOpen(el, close) { el.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => { close(); QUICK[+b.dataset.q].run(); })); },
+    });
+  }
+
   /* ---------------- Inicialização ---------------- */
   async function init() {
     await Store.init();
@@ -190,7 +214,16 @@
     document.getElementById('btn-theme').addEventListener('click', () => MR3.setTheme(MR3.getTheme() === 'light' ? 'dark' : 'light'));
     document.getElementById('btn-menu').addEventListener('click', openDrawer);
     document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
-    document.getElementById('bottom-nav').addEventListener('click', (e) => { if (e.target.closest('#bn-more')) openDrawer(); });
+    document.getElementById('bottom-nav').addEventListener('click', (e) => { if (e.target.closest('#bn-fab')) quickActions(); });
+    // Ícones e tabelas "empilháveis" em todo conteúdo novo (telas, filtros, modais)
+    let raf = 0;
+    const obs = new MutationObserver(() => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; UI.refreshIcons(document.getElementById('main')); UI.stackTables(document.getElementById('main')); UI.refreshIcons(document.getElementById('modal-root')); }); });
+    obs.observe(document.getElementById('main'), { childList: true, subtree: true });
+    obs.observe(document.getElementById('modal-root'), { childList: true, subtree: true });
+    // Fichas salvas pelo ficha.html neste aparelho
+    const novas = MR3.Fichas.consumirFila();
+    if (novas) setTimeout(() => UI.toast(`${U.plural(novas, 'ficha nova recebida', 'fichas novas recebidas')}. Veja em Fichas de cadastro.`), 600);
+    Store.subscribe(U.debounce(() => { renderNav(); setActiveNav(currentRoute); UI.refreshIcons(document.getElementById('sidebar')); }, 300));
     document.getElementById('nav').addEventListener('click', (e) => { if (e.target.closest('a')) closeDrawer(); });
 
     // Atalhos: Esc fecha modal/drawer; "/" foca a busca

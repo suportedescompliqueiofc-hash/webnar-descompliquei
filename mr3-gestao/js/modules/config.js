@@ -26,7 +26,7 @@
           <div class="field"><label for="c-emp">Empresa</label><input id="c-emp" class="input" name="empresa" value="${esc(cfg.empresa)}"></div>
           <div class="field"><label for="c-doc">CPF/CNPJ (sai no recibo)</label><input id="c-doc" class="input" name="documento" value="${esc(cfg.documento)}"></div>
           <div class="field"><label for="c-cid">Cidade</label><input id="c-cid" class="input" name="cidade" value="${esc(cfg.cidade)}"></div>
-          <div class="field"><label for="c-tel">Telefone</label><input id="c-tel" class="input" name="telefone" data-mask="phone" value="${esc(cfg.telefone)}"></div>
+          <div class="field"><label for="c-tel">Seu WhatsApp</label><input id="c-tel" class="input" name="telefone" data-mask="phone" value="${esc(cfg.telefone)}"></div>
           <div class="field"><label for="c-email">E-mail</label><input id="c-email" type="email" class="input" name="email" value="${esc(cfg.email)}"></div>
           <div class="field full"><label for="c-pix">Chave Pix</label><input id="c-pix" class="input" name="chavePix" value="${esc(cfg.chavePix)}" placeholder="CPF, e-mail, telefone ou chave aleatória"><span class="hint">Usada nas mensagens de cobrança.</span></div>
         </div></div></div>
@@ -53,6 +53,13 @@
           <div class="field"><label for="c-m1">Cobrança (antes do vencimento)</label><textarea id="c-m1" class="input" name="msgCobranca" rows="5">${esc(cfg.mensagens.cobranca)}</textarea></div>
           <div class="field"><label for="c-m2">Cobrança em atraso</label><textarea id="c-m2" class="input" name="msgAtraso" rows="5">${esc(cfg.mensagens.atraso)}</textarea></div>
           <div class="field"><label for="c-m3">Lembrete de sessão</label><textarea id="c-m3" class="input" name="msgLembrete" rows="3">${esc(cfg.mensagens.lembrete)}</textarea></div>
+          <div class="field"><label for="c-m4">Envio da ficha de cadastro</label><textarea id="c-m4" class="input" name="msgFicha" rows="4">${esc(cfg.mensagens.ficha)}</textarea><span class="hint">Use <code>{link}</code> onde o endereço da ficha deve aparecer.</span></div>
+        </div></div>
+
+        <div class="card span-2"><div class="card-head"><h2>${UI.icon('clipboard-pen')}Ficha de cadastro</h2><a class="btn btn-sm" href="ficha.html" target="_blank" rel="noopener">${UI.icon('external-link')}Abrir a ficha</a></div><div class="card-body stack">
+          <p class="muted small">A ficha (<b>ficha.html</b>) precisa estar publicada na internet para os atletas abrirem no celular. Publique a pasta do sistema (Netlify, Vercel ou GitHub Pages) e cole aqui o endereço da ficha. O link enviado já leva seu WhatsApp, para a ficha voltar direto para você.</p>
+          <div class="field"><label for="c-furl">Endereço público do ficha.html</label><input id="c-furl" class="input" name="fichaUrl" type="url" inputmode="url" placeholder="https://seu-site.netlify.app/ficha.html" value="${esc(cfg.fichaUrl)}"></div>
+          ${!cfg.telefone ? `<div class="alert warning">${UI.icon('alert-triangle')}<div>Preencha o seu telefone acima: é para ele que as fichas são enviadas.</div></div>` : ''}
         </div></div>
       </div>
       <div class="row mt-3" style="justify-content:flex-end"><button type="submit" class="btn btn-gold">${UI.icon('save')}Salvar configurações</button></div>
@@ -66,7 +73,7 @@
           </div></div></div>
 
         <div class="card"><div class="card-head"><h2>${UI.icon('wand-2')}Dados de demonstração</h2></div><div class="card-body">
-          <p class="muted mb-3">Gera ~26 atletas fictícios, 6 meses de sessões, cobranças, pagamentos, saídas com motivos, avaliações e despesas — para testar todas as telas e gráficos.</p>
+          <p class="muted mb-3">Gera ~26 atletas fictícios, 6 meses de sessões, cobranças, pagamentos, saídas com motivos, avaliações, fichas e materiais — para testar todas as telas e gráficos.</p>
           <div class="row-wrap"><button class="btn btn-gold" id="demo-load">${UI.icon('wand-2')}${temDemo ? 'Recarregar demonstração' : 'Carregar demonstração'}</button>
             <button class="btn" id="demo-clear" ${temDemo ? '' : 'disabled'}>${UI.icon('eraser')}Limpar demonstração</button></div></div></div>
 
@@ -98,6 +105,7 @@
       if (!f.nomeProfissional) errs.nomeProfissional = 'Obrigatório.';
       if (!f.empresa) errs.empresa = 'Obrigatório.';
       if (f.email && !U.validEmail(f.email)) errs.email = 'E-mail inválido.';
+      if (f.fichaUrl && !/^https?:\/\/\S+\.\S+/.test(f.fichaUrl)) errs.fichaUrl = 'Use um endereço completo, começando com https://';
       if (!f.hInicio || !f.hFim || f.hFim <= f.hInicio) errs.hFim = 'O fim deve ser depois do início.';
       if (!f.dias.length) errs.dias = 'Selecione ao menos um dia.';
       if (!UI.showErrors(form, errs)) { if (errs.dias) UI.toast(errs.dias, 'error'); return; }
@@ -107,7 +115,8 @@
         horarioAtendimento: { inicio: f.hInicio, fim: f.hFim, dias: f.dias.map(Number).sort() },
         valoresPadrao: { duracaoSessao: Number(f.duracaoSessao) || 60, diaVencimento: U.clamp(Number(f.diaVencimento) || 10, 1, 31), sessaoAvulsa: f.sessaoAvulsa || 0 },
         alertaSaldoPacote: Math.max(0, Number(f.alertaSaldoPacote) || 0), faltaDescontaPacote: !!f.faltaDescontaPacote,
-        mensagens: { cobranca: f.msgCobranca, atraso: f.msgAtraso, lembrete: f.msgLembrete },
+        mensagens: { cobranca: f.msgCobranca, atraso: f.msgAtraso, lembrete: f.msgLembrete, ficha: f.msgFicha },
+        fichaUrl: f.fichaUrl,
         // listas (arrays) são substituídas por inteiro no merge
         locais: lines(f.locais), tiposSessao: lines(f.tiposSessao), modalidades: lines(f.modalidades),
       });
@@ -168,7 +177,7 @@
   }
 
   async function apagarTudo() {
-    const ok1 = await UI.confirm({ title: 'Apagar todos os dados', message: 'Isso remove TODOS os atletas, sessões, cobranças, despesas e avaliações deste navegador. Não há como desfazer sem um backup.', confirmText: 'Continuar', danger: true });
+    const ok1 = await UI.confirm({ title: 'Apagar todos os dados', message: 'Isso remove TODOS os atletas, sessões, cobranças, avaliações, fichas e materiais deste navegador. Não há como desfazer sem um backup.', confirmText: 'Continuar', danger: true });
     if (!ok1) return;
     UI.modal({
       title: 'Confirmação final', size: 'sm',
@@ -177,7 +186,7 @@
       onOpen(el, close) {
         const inp = el.querySelector('#wipe-in'), btn = el.querySelector('#wipe-ok');
         inp.addEventListener('input', () => (btn.disabled = inp.value.trim().toUpperCase() !== 'APAGAR'));
-        btn.onclick = () => { Store.clearAll(); close(); UI.toast('Todos os dados foram apagados.'); MR3.go('#/dashboard'); };
+        btn.onclick = () => { Store.clearAll(); MR3.Files.clear().catch(() => {}); close(); UI.toast('Todos os dados foram apagados.'); MR3.go('#/dashboard'); };
       },
     });
   }

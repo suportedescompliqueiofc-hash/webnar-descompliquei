@@ -41,14 +41,34 @@
     const mesNum = Number(hoje.slice(5, 7));
     const aniversariantes = U.sortBy(ativos.filter((a) => D.isAniversarioNoMes(a, mesNum)), (a) => a.dataNascimento.slice(8));
 
-    el.innerHTML = `
-      <div class="page-head">
-        <div class="titles"><div class="eyebrow">${U.capitalize(U.DIAS[U.weekday(hoje)])}, ${U.fmtDate(hoje)}</div><h1>${saud}, ${esc(U.firstName(cfg.nomeProfissional))}!</h1>
-          <p class="subtitle">${sessHoje.filter((s) => D.ocupa(s)).length ? `Você tem ${U.plural(sessHoje.filter((s) => D.ocupa(s)).length, 'sessão', 'sessões')} hoje.` : 'Nenhuma sessão agendada para hoje.'}</p></div>
-        <div class="actions"><button class="btn" id="db-atleta">${UI.icon('user-plus')}Atleta</button><button class="btn btn-gold" id="db-sessao">${UI.icon('calendar-plus')}Nova sessão</button></div>
-      </div>
+    // Hero: próxima sessão + anel com o progresso do dia
+    const doDia = sessHoje.filter((s) => D.ocupa(s));
+    const feitasHoje = doDia.filter((s) => s.status !== 'agendada').length;
+    const agora = U.nowTime();
+    const proxima = doDia.find((s) => s.status === 'agendada' && D.fimSessao(s) > agora)
+      || U.sortBy(Store.query('sessoes', (s) => s.status === 'agendada' && s.data > hoje), (s) => s.data + s.horaInicio)[0];
+    const fichasPend = Store.query('fichas', { status: 'pendente' }).length;
 
-      <div class="grid grid-kpi mb-3">
+    el.innerHTML = `
+      <section class="hero">
+        <div>
+          <div class="eyebrow">${U.capitalize(U.DIAS[U.weekday(hoje)])}, ${U.fmtDate(hoje)}</div>
+          <h1>${saud}, ${esc(U.firstName(cfg.nomeProfissional))}!</h1>
+          <p class="hero-sub">${doDia.length ? `${U.plural(doDia.length, 'sessão', 'sessões')} hoje · ${feitasHoje} concluída${feitasHoje === 1 ? '' : 's'}` : 'Nenhuma sessão agendada para hoje.'}${fichasPend ? ` · <a href="#/fichas">${U.plural(fichasPend, 'ficha nova', 'fichas novas')}</a>` : ''}</p>
+          ${proxima ? `<a class="hero-next" href="#" data-det="${esc(proxima.id)}" style="text-decoration:none;color:inherit">
+            <span class="when">${esc(proxima.horaInicio)}</span>
+            <span class="grow"><span class="muted tiny" style="text-transform:uppercase;letter-spacing:.08em">Próxima sessão${proxima.data !== hoje ? ` · ${U.fmtDateDow(proxima.data)}` : ''}</span><br>
+              <b class="truncate" style="display:block">${esc((proxima.atletaIds || []).map(D.nomeAtleta).join(', '))}</b>
+              <span class="muted small">${esc([proxima.tipo, proxima.local].filter(Boolean).join(' · '))}</span></span>
+            ${UI.icon('chevron-right')}</a>` : ''}
+          <div class="row-wrap mt-3"><button class="btn btn-gold" id="db-sessao">${UI.icon('calendar-plus')}Nova sessão</button><button class="btn" id="db-atleta">${UI.icon('user-plus')}Novo atleta</button></div>
+        </div>
+        <div class="ring" style="--p:${doDia.length ? Math.round((feitasHoje / doDia.length) * 100) : 0}" role="img" aria-label="${feitasHoje} de ${doDia.length} sessões concluídas hoje">
+          <div><b>${feitasHoje}/${doDia.length}</b><span>hoje</span></div>
+        </div>
+      </section>
+
+      <div class="grid grid-kpi kpi-6 mb-3">
         ${UI.kpi({ label: 'Atletas ativos', value: ativos.length, icon: 'users', href: '#/atletas', sub: `${churn.novos + churn.reativacoes} entradas · ${churn.saidas} saídas no mês` })}
         ${UI.kpi({ label: 'Recebido no mês', value: U.fmtMoney(r.recebido), icon: 'banknote', href: '#/financeiro/resumo', sub: `de ${U.fmtMoney(r.previsto)} previstos` })}
         ${UI.kpi({ label: 'A receber no mês', value: U.fmtMoney(r.pendente), icon: 'clock', href: '#/financeiro', sub: 'pendente, ainda no prazo' })}

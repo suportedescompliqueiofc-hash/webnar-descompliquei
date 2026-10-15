@@ -67,6 +67,7 @@
           <span class="spacer"></span>
           <span class="legend"><span><i style="background:var(--primary-hover)"></i>Agendada</span><span><i style="background:var(--success)"></i>Realizada</span><span><i style="background:var(--danger)"></i>Falta</span><span><i style="background:var(--text-3)"></i>Cancelada</span><span><i style="background:var(--warning)"></i>Remarcada</span></span>
         </div>
+        ${view === 'dia' ? weekStrip(ref) : ''}
         <div id="ag-body"></div>
       </div>`;
 
@@ -77,6 +78,16 @@
     el.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => { location.hash = nav(ref, b.dataset.view); }));
     el.querySelector('#ag-goto').addEventListener('change', (e) => { if (U.isISODate(e.target.value)) location.hash = nav(e.target.value); });
     el.querySelector('#ag-nova').addEventListener('click', () => openSessao({ data: view === 'mes' ? U.today() : ref }));
+  }
+
+  /** Faixa com os 7 dias da semana (visão dia): toque para trocar de dia. */
+  function weekStrip(ref) {
+    const ini = U.startOfWeek(ref), hoje = U.today();
+    const cont = U.groupBy(Store.query('sessoes', (s) => s.data >= ini && s.data <= U.addDays(ini, 6) && D.ocupa(s)), (s) => s.data);
+    return `<nav class="week-strip" aria-label="Dias da semana">${Array.from({ length: 7 }, (_, i) => {
+      const d = U.addDays(ini, i);
+      return `<a href="#/agenda?v=dia&d=${d}" class="${d === ref ? 'sel' : ''} ${d === hoje ? 'today' : ''}" ${d === ref ? 'aria-current="date"' : ''} aria-label="${U.DIAS[i]} ${U.fmtDate(d)}: ${(cont[d] || []).length} sessões">${U.DIAS_CURTOS[i]}<b>${+d.slice(8)}</b><i class="${(cont[d] || []).length ? '' : 'none'}"></i></a>`;
+    }).join('')}</nav>`;
   }
 
   /* ---------- Grade de horários (semana / dia) ---------- */

@@ -82,6 +82,7 @@
       });
       UI.refreshIcons(overlay);
       UI.bindMasks(overlay);
+      UI.stackTables(overlay);
       opts.onOpen && opts.onOpen(overlay, close);
       setTimeout(() => {
         const first = overlay.querySelector('[autofocus]') || overlay.querySelector('.modal-body input:not([type=hidden]), .modal-body select, .modal-body textarea') || overlay.querySelector('.modal-foot .btn');
@@ -245,25 +246,41 @@
     moneyTick(v) { return v >= 1000 ? 'R$ ' + U.fmtNum(v / 1000, 1) + 'k' : 'R$ ' + U.fmtNum(v, 0); },
 
     /* ---------------- WhatsApp ---------------- */
-    /** Abre modal com mensagem editável e botão que abre wa.me. */
-    whatsapp({ telefone, mensagem, titulo = 'Enviar WhatsApp', nome = '' }) {
+    /** Modal com mensagem editável e link real para o wa.me (funciona no celular e em navegadores embutidos). */
+    whatsapp({ telefone, mensagem, titulo = 'Enviar WhatsApp', nome = '', permitirSemNumero = false }) {
       const num = U.phoneToWa(telefone);
       UI.modal({
         title: titulo,
         body: `
-          ${!num ? `<div class="alert warning mb-3">${UI.icon('alert-triangle')}<div>Este atleta não tem telefone cadastrado. Você pode digitar um número abaixo.</div></div>` : ''}
-          <div class="field mb-3"><label for="wa-num">Número (WhatsApp)</label><input id="wa-num" class="input" data-mask="phone" value="${esc(U.maskPhone(num.replace(/^55/, '')))}" placeholder="(11) 98765-4321"></div>
-          <div class="field"><label for="wa-msg">Mensagem ${nome ? `para ${esc(nome)}` : ''}</label><textarea id="wa-msg" class="input" rows="9">${esc(mensagem)}</textarea><span class="hint">Edite à vontade antes de enviar.</span></div>`,
-        footer: `<button class="btn" data-close>Cancelar</button><button class="btn btn-wa" data-send>${UI.icon('message-circle')}Abrir WhatsApp</button>`,
+          ${!num && !permitirSemNumero ? `<div class="alert warning mb-3">${UI.icon('alert-triangle')}<div>Sem telefone cadastrado. Digite um número abaixo.</div></div>` : ''}
+          <div class="field mb-3"><label for="wa-num">Número (WhatsApp)${permitirSemNumero ? ' <span class="muted">— opcional</span>' : ''}</label><input id="wa-num" class="input" data-mask="phone" value="${esc(U.maskPhone(num.replace(/^55/, '')))}" placeholder="(11) 98765-4321">
+            ${permitirSemNumero ? '<span class="hint">Deixe vazio para escolher o contato dentro do WhatsApp.</span>' : ''}</div>
+          <div class="field"><label for="wa-msg">Mensagem${nome ? ` para ${esc(nome)}` : ''}</label><textarea id="wa-msg" class="input" rows="9">${esc(mensagem)}</textarea><span class="hint">Edite à vontade antes de enviar.</span></div>`,
+        footer: `<button class="btn" data-close>Cancelar</button><a class="btn btn-wa" id="wa-send" target="_blank" rel="noopener" href="#">${UI.icon('message-circle')}Abrir WhatsApp</a>`,
         onOpen(el, close) {
-          el.querySelector('[data-send]').addEventListener('click', () => {
-            const n = U.phoneToWa(el.querySelector('#wa-num').value);
-            if (!U.validPhone(n.replace(/^55/, ''))) { UI.toast('Informe um telefone válido com DDD.', 'error'); return; }
-            const url = `https://wa.me/${n}?text=${encodeURIComponent(el.querySelector('#wa-msg').value)}`;
-            window.open(url, '_blank', 'noopener');
-            close();
+          const a = el.querySelector('#wa-send');
+          const numIn = el.querySelector('#wa-num'), msgIn = el.querySelector('#wa-msg');
+          const valido = () => { const d = U.onlyDigits(numIn.value); return d ? U.validPhone(d) : permitirSemNumero; };
+          const upd = () => {
+            const d = U.onlyDigits(numIn.value);
+            a.href = `https://wa.me/${d ? U.phoneToWa(d) : ''}?text=${encodeURIComponent(msgIn.value)}`;
+            a.classList.toggle('is-disabled', !valido());
+          };
+          numIn.addEventListener('input', upd); msgIn.addEventListener('input', upd); upd();
+          a.addEventListener('click', (e) => {
+            if (!valido()) { e.preventDefault(); UI.toast('Informe um telefone válido com DDD.', 'error'); numIn.focus(); return; }
+            setTimeout(close, 300);
           });
         },
+      });
+    },
+
+    /** Rótulos das colunas em cada célula: no celular a tabela vira lista de cartões. */
+    stackTables(root = document) {
+      root.querySelectorAll('table.table:not(.no-stack)').forEach((t) => {
+        const heads = [...t.querySelectorAll('thead th')].map((th) => th.textContent.replace(/[↑↓]/g, '').trim());
+        t.classList.add('stackable');
+        t.querySelectorAll('tbody tr').forEach((tr) => [...tr.children].forEach((td, i) => { if (heads[i] && !td.dataset.label) td.dataset.label = heads[i]; }));
       });
     },
 

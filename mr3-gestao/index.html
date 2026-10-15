@@ -5,8 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MR3 Gestão</title>
   <meta name="description" content="Sistema de gestão MR3 — Fabio Nascimento: atletas, agenda, sessões, financeiro e retenção.">
-  <meta name="theme-color" content="#0A1428">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230A1428'/%3E%3Ctext x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='Arial,sans-serif' font-weight='800' font-size='26' fill='%23F2F5FA'%3EMR%3Ctspan fill='%23D4AF37'%3E3%3C/tspan%3E%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#08111F">
+  <meta name="claude:viewport-fit-sides" content="cover">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MR3">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 
   <!-- Aplica o tema antes da primeira pintura (evita "piscar") -->
   <script>
@@ -21,7 +28,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -80,11 +87,15 @@
   <!-- Aplicação (scripts clássicos: funciona abrindo o index.html direto, sem servidor) -->
   <script src="js/utils.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/files.js"></script>
   <script src="js/domain.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/ficha-campos.js"></script>
   <script src="js/demo.js"></script>
   <script src="js/modules/dashboard.js"></script>
   <script src="js/modules/atletas.js"></script>
+  <script src="js/modules/fichas.js"></script>
+  <script src="js/modules/materiais.js"></script>
   <script src="js/modules/agenda.js"></script>
   <script src="js/modules/sessoes.js"></script>
   <script src="js/modules/financeiro.js"></script>

@@ -27,7 +27,8 @@
         <div class="titles"><div class="eyebrow">Cadastro</div><h1>Atletas</h1>
           <p class="subtitle">${U.plural(atletas.filter((a) => a.status === 'ativo').length, 'ativo', 'ativos')} · ${U.plural(atletas.filter((a) => a.status !== 'ativo').length, 'inativo', 'inativos')}</p></div>
         <div class="actions">
-          <button class="btn" id="at-csv">${UI.icon('file-spreadsheet')}Exportar CSV</button>
+          <button class="btn hide-mobile" id="at-csv">${UI.icon('file-spreadsheet')}Exportar CSV</button>
+          <a class="btn" href="#/fichas">${UI.icon('clipboard-list')}Fichas${(() => { const n = Store.query('fichas', { status: 'pendente' }).length; return n ? ` <span class="count-pill">${n}</span>` : ''; })()}</a>
           <button class="btn btn-gold" id="at-novo">${UI.icon('user-plus')}Novo atleta</button>
         </div>
       </div>
@@ -130,11 +131,11 @@
   /* =====================================================================
      FORMULÁRIO (novo / editar)
      ===================================================================== */
-  function openForm(id, onSaved) {
+  function openForm(id, onSaved, preset) {
     const a = id ? Store.getById('atletas', id) : null;
     const cfg = Store.getConfig();
     const planos = Store.getAll('planos').filter((p) => p.ativo !== false || (a && a.planoId === p.id));
-    const v = a || { nivel: 'intermediario', dataInicio: U.today(), diaVencimento: cfg.valoresPadrao.diaVencimento, status: 'ativo' };
+    const v = a || Object.assign({ nivel: 'intermediario', dataInicio: U.today(), diaVencimento: cfg.valoresPadrao.diaVencimento, status: 'ativo' }, preset || {});
     const resp = v.responsavel || {};
     let foto = v.foto || '';
 
@@ -181,7 +182,7 @@
       </form>`;
 
     UI.modal({
-      title: a ? 'Editar atleta' : 'Novo atleta', size: 'lg', body,
+      title: a ? 'Editar atleta' : preset ? 'Novo atleta a partir da ficha' : 'Novo atleta', size: 'lg', body,
       footer: `<button class="btn" data-close>Cancelar</button><button class="btn btn-gold" id="a-save">${UI.icon('check')}Salvar</button>`,
       onOpen(el, close) {
         const form = el.querySelector('#atleta-form');
@@ -334,6 +335,8 @@
     { id: 'sessoes', label: 'Sessões', icon: 'dumbbell' },
     { id: 'financeiro', label: 'Financeiro', icon: 'wallet' },
     { id: 'avaliacoes', label: 'Avaliações', icon: 'activity' },
+    { id: 'ficha', label: 'Ficha', icon: 'clipboard-list' },
+    { id: 'materiais', label: 'Materiais', icon: 'folder-open' },
     { id: 'timeline', label: 'Linha do tempo', icon: 'history' },
   ];
 
@@ -350,7 +353,7 @@
 
     el.innerHTML = `
       <div class="row mb-3"><a href="#/atletas" class="btn btn-sm btn-ghost">${UI.icon('arrow-left')}Atletas</a></div>
-      <div class="card mb-3">
+      <div class="card profile-card mb-3">
         <div class="profile-head">
           ${UI.avatar(a, 'lg')}
           <div class="info">
@@ -376,7 +379,7 @@
       <div id="aba"></div>`;
 
     const box = el.querySelector('#aba');
-    ({ resumo: abaResumo, sessoes: abaSessoes, financeiro: abaFinanceiro, avaliacoes: abaAvaliacoes, timeline: abaTimeline })[aba](box, a);
+    ({ resumo: abaResumo, sessoes: abaSessoes, financeiro: abaFinanceiro, avaliacoes: abaAvaliacoes, ficha: abaFicha, materiais: abaMateriais, timeline: abaTimeline })[aba](box, a);
 
     el.querySelector('#p-wa').onclick = () => UI.whatsapp({ telefone: a.telefone, nome: a.nome, mensagem: `Olá, ${U.firstName(a.nome)}! ` });
     el.querySelector('#p-sess').onclick = () => MR3.Agenda.openSessao({ atletaIds: [a.id] });
@@ -579,6 +582,30 @@
         };
       },
     });
+  }
+
+  /* ---------- Aba: Ficha de cadastro ---------- */
+  function abaFicha(box, a) {
+    const f = a.fichaId ? Store.getById('fichas', a.fichaId) : null;
+    if (!f) {
+      box.innerHTML = `<div class="card">${UI.empty({ icon: 'clipboard-list', title: 'Sem ficha de cadastro', text: 'Envie a ficha para o atleta ou responsável preencher no celular. Quando ela voltar pelo WhatsApp, importe e vincule a este atleta.',
+        action: `<div class="row-wrap" style="justify-content:center"><button class="btn btn-gold" id="fa-env">${UI.icon('send')}Enviar ficha</button><button class="btn" id="fa-imp">${UI.icon('clipboard-paste')}Importar ficha</button></div>` })}</div>`;
+      box.querySelector('#fa-env').onclick = () => MR3.Fichas.enviar(a);
+      box.querySelector('#fa-imp').onclick = () => MR3.Fichas.importar();
+      return;
+    }
+    box.innerHTML = `<div class="card card-pad"><div class="row mb-3" style="flex-wrap:wrap"><div class="grow"><b>Ficha preenchida em ${U.fmtDate(f.dados.enviadaEm)}</b><div class="muted small">${f.origem === 'presencial' ? 'Preenchida presencialmente' : 'Recebida pelo WhatsApp'}</div></div>
+      <button class="btn btn-sm" id="fa-nova">${UI.icon('refresh-cw')}Pedir ficha atualizada</button></div><div class="ficha-view">${MR3.Ficha.viewHtml(f.dados)}</div></div>`;
+    box.querySelector('#fa-nova').onclick = () => MR3.Fichas.enviar(a);
+  }
+
+  /* ---------- Aba: Materiais compartilhados ---------- */
+  function abaMateriais(box, a) {
+    const mats = U.sortBy(Store.query('materiais', (m) => (m.atletaIds || []).includes(a.id)), (m) => m.criadoEm, -1);
+    box.innerHTML = `<div class="section-title"><h2>Materiais de ${esc(U.firstName(a.nome))}</h2><span class="spacer"></span><button class="btn btn-sm btn-gold" id="am-add">${UI.icon('plus')}Vincular material</button></div>
+      ${mats.length ? `<div class="mat-grid" id="am-grid"></div>` : `<div class="card">${UI.empty({ icon: 'folder-open', title: 'Nenhum material vinculado', text: 'Vincule vídeos, PDFs e links da biblioteca de Materiais para este atleta.', compact: true })}</div>`}`;
+    if (mats.length) MR3.Materiais.renderGrid(box.querySelector('#am-grid'), mats);
+    box.querySelector('#am-add').onclick = () => MR3.Materiais.vincularAtleta(a.id);
   }
 
   /* ---------- Aba: Linha do tempo ---------- */

@@ -1,7 +1,7 @@
 /* =========================================================================
    Módulo: Financeiro — cobranças (mensalidades, pacotes, avulsas),
-   pagamentos totais/parciais, despesas, visão mensal e recibos.
-   Rota: #/financeiro[/cobrancas|despesas|resumo]?m=AAAA-MM
+   pagamentos totais/parciais, visão mensal e recibos.
+   Rota: #/financeiro[/cobrancas|resumo]?m=AAAA-MM
    ========================================================================= */
 (function () {
   'use strict';
@@ -13,7 +13,7 @@
   const filtros = { status: '', atleta: '', forma: '', tipo: '', periodo: 'mes' };
 
   function render(el, params, query) {
-    const aba = ['cobrancas', 'despesas', 'resumo'].includes(params[0]) ? params[0] : 'cobrancas';
+    const aba = ['cobrancas', 'resumo'].includes(params[0]) ? params[0] : 'cobrancas';
     const mes = /^\d{4}-\d{2}$/.test(query.m || '') ? query.m : U.monthKey(U.today());
     const link = (a, m = mes) => `#/financeiro/${a}?m=${m}`;
     el.innerHTML = `
@@ -28,12 +28,11 @@
           <div id="fin-actions" class="row-wrap"></div>
         </div>
       </div>
-      <nav class="tabs" aria-label="Seções">${[['cobrancas', 'Cobranças'], ['resumo', 'Visão mensal'], ['despesas', 'Despesas']].map(([k, l]) => `<a href="${link(k)}" class="${k === aba ? 'active' : ''}" ${k === aba ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
+      <nav class="tabs" aria-label="Seções">${[['cobrancas', 'Cobranças'], ['resumo', 'Visão mensal']].map(([k, l]) => `<a href="${link(k)}" class="${k === aba ? 'active' : ''}" ${k === aba ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
       <div id="fin-body"></div>`;
     const body = el.querySelector('#fin-body');
     const actions = el.querySelector('#fin-actions');
     if (aba === 'cobrancas') renderCobrancas(body, actions, mes);
-    else if (aba === 'despesas') renderDespesas(body, actions, mes);
     else renderResumo(body, actions, mes);
   }
 
@@ -384,84 +383,31 @@
     const r = D.resumoMes(mes);
     const ant = D.resumoMes(U.addMonthKey(mes, -1));
     const varPct = (a, b) => (b ? `${a >= b ? '▲' : '▼'} ${U.fmtPct(Math.abs(a - b) / b)} vs. mês anterior` : '');
-    const desp = Store.query('despesas', (d) => d.data.slice(0, 7) === mes);
-    const porCat = U.groupBy(desp, (d) => d.categoria || 'outro');
+    const inad = D.inadimplenciaAtual();
     body.innerHTML = `
       <div class="grid grid-kpi mb-3">
-        ${UI.kpi({ label: 'Previsto', value: U.fmtMoney(r.previsto), icon: 'target' })}
+        ${UI.kpi({ label: 'Previsto', value: U.fmtMoney(r.previsto), icon: 'target', sub: U.plural(r.qtdCobrancas, 'cobrança', 'cobranças') })}
         ${UI.kpi({ label: 'Recebido', value: U.fmtMoney(r.recebido), icon: 'banknote', sub: varPct(r.recebido, ant.recebido) })}
         ${UI.kpi({ label: 'Pendente', value: U.fmtMoney(r.pendente), icon: 'clock' })}
-        ${UI.kpi({ label: 'Atrasado', value: U.fmtMoney(r.atrasado), icon: 'alert-triangle' })}
+        ${UI.kpi({ label: 'Atrasado no mês', value: U.fmtMoney(r.atrasado), icon: 'alert-triangle', sub: U.plural(r.atletasAtraso, 'atleta', 'atletas') })}
         ${UI.kpi({ label: 'Ticket médio', value: U.fmtMoney(r.ticketMedio), icon: 'user-round', sub: 'recebido ÷ atletas pagantes' })}
-        ${UI.kpi({ label: 'Despesas', value: U.fmtMoney(r.despesas), icon: 'trending-down' })}
-        ${UI.kpi({ label: 'Resultado líquido', value: `<span class="${r.liquido < 0 ? 'text-danger' : ''}">${U.fmtMoney(r.liquido)}</span>`, icon: 'scale', sub: 'recebido − despesas' })}
         ${UI.kpi({ label: 'Taxa de recebimento', value: U.fmtPct(r.previsto ? Math.min(1, r.recebido / r.previsto) : null), icon: 'percent', sub: 'recebido ÷ previsto' })}
+        ${UI.kpi({ label: 'Cobranças pagas', value: `${r.pagas}<span class="kpi-of"> / ${r.qtdCobrancas}</span>`, icon: 'check-check' })}
+        ${UI.kpi({ label: 'Inadimplência total', value: U.fmtMoney(inad.valor), icon: 'shield-alert', sub: 'todas as cobranças vencidas' })}
       </div>
       <div class="grid grid-2">
         <div class="card"><div class="card-head"><h3>${UI.icon('pie-chart')}Recebido por forma de pagamento</h3></div><div class="card-body">${r.recebido ? '<div class="chart-box sm" id="ch-forma"></div>' : UI.empty({ icon: 'pie-chart', title: 'Sem recebimentos no mês', compact: true })}</div></div>
-        <div class="card"><div class="card-head"><h3>${UI.icon('trending-down')}Despesas por categoria</h3></div><div class="card-body">${desp.length ? '<div class="chart-box sm" id="ch-desp"></div>' : UI.empty({ icon: 'receipt', title: 'Sem despesas no mês', compact: true })}</div></div>
+        <div class="card"><div class="card-head"><h3>${UI.icon('layers')}Recebido por tipo</h3></div><div class="card-body">${r.recebido ? '<div class="chart-box sm" id="ch-tipo"></div>' : UI.empty({ icon: 'layers', title: 'Sem recebimentos no mês', compact: true })}</div></div>
       </div>
       <div class="card mt-3"><div class="card-head"><h3>${UI.icon('table')}Recebido por forma</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Forma</th><th class="right">Valor</th><th class="right">%</th></tr></thead><tbody>
         ${Object.entries(D.FORMAS_PAGAMENTO).map(([k, l]) => `<tr><td>${l}</td><td class="right num">${U.fmtMoney(r.porForma[k])}</td><td class="right num">${U.fmtPct(r.recebido ? r.porForma[k] / r.recebido : null)}</td></tr>`).join('')}
       </tbody></table></div></div>`;
     const c = UI.chartColors();
-    if (r.recebido) UI.chart(body.querySelector('#ch-forma'), { type: 'doughnut', data: { labels: Object.values(D.FORMAS_PAGAMENTO), datasets: [{ data: Object.keys(D.FORMAS_PAGAMENTO).map((k) => r.porForma[k]), backgroundColor: c.series, borderColor: c.surface, borderWidth: 2 }] }, options: { cutout: '62%', plugins: { legend: { position: 'right' }, tooltip: { callbacks: { label: (x) => ` ${x.label}: ${U.fmtMoney(x.raw)}` } } } } });
-    if (desp.length) {
-      const cats = Object.keys(porCat);
-      UI.chart(body.querySelector('#ch-desp'), { type: 'bar', data: { labels: cats.map((k) => D.CATEGORIAS_DESPESA[k] || k), datasets: [{ label: 'Despesas', data: cats.map((k) => U.sum(porCat[k], (d) => d.valor)), backgroundColor: c.gold, borderRadius: 6, maxBarThickness: 40 }] }, options: { indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: (x) => ' ' + U.fmtMoney(x.raw) } } }, scales: { x: { ticks: { callback: UI.moneyTick } } } } });
+    if (r.recebido) {
+      UI.chart(body.querySelector('#ch-forma'), { type: 'doughnut', data: { labels: Object.values(D.FORMAS_PAGAMENTO), datasets: [{ data: Object.keys(D.FORMAS_PAGAMENTO).map((k) => r.porForma[k]), backgroundColor: c.series, borderColor: c.surface, borderWidth: 2 }] }, options: { cutout: '62%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (x) => ` ${x.label}: ${U.fmtMoney(x.raw)}` } } } } });
+      const tipos = Object.keys(D.TIPOS_COBRANCA);
+      UI.chart(body.querySelector('#ch-tipo'), { type: 'bar', data: { labels: tipos.map((k) => D.TIPOS_COBRANCA[k]), datasets: [{ label: 'Recebido', data: tipos.map((k) => r.porTipo[k] || 0), backgroundColor: [c.gold, c.primary, c.muted], borderRadius: 8, maxBarThickness: 44 }] }, options: { indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: (x) => ' ' + U.fmtMoney(x.raw) } } }, scales: { x: { ticks: { callback: UI.moneyTick } } } } });
     }
-  }
-
-  /* =====================================================================
-     DESPESAS
-     ===================================================================== */
-  function renderDespesas(body, actions, mes) {
-    actions.innerHTML = `<button class="btn btn-gold" id="d-nova">${UI.icon('plus')}Nova despesa</button>`;
-    actions.querySelector('#d-nova').onclick = () => openDespesa(null, mes);
-    const rows = U.sortBy(Store.query('despesas', (d) => d.data.slice(0, 7) === mes), (d) => d.data, -1);
-    const r = D.resumoMes(mes);
-    body.innerHTML = `
-      <div class="grid grid-kpi mb-3">
-        ${UI.kpi({ label: 'Recebido', value: U.fmtMoney(r.recebido), icon: 'banknote' })}
-        ${UI.kpi({ label: 'Despesas', value: U.fmtMoney(r.despesas), icon: 'trending-down' })}
-        ${UI.kpi({ label: 'Resultado líquido', value: `<span class="${r.liquido < 0 ? 'text-danger' : ''}">${U.fmtMoney(r.liquido)}</span>`, icon: 'scale' })}
-      </div>
-      <div class="card">${rows.length ? `<div class="table-wrap"><table class="table"><thead><tr><th>Data</th><th>Descrição</th><th class="hide-mobile">Categoria</th><th class="right">Valor</th><th></th></tr></thead><tbody>
-        ${rows.map((d) => `<tr><td class="num">${U.fmtDate(d.data)}</td><td>${esc(d.descricao)}</td><td class="hide-mobile">${UI.badge(D.CATEGORIAS_DESPESA[d.categoria] || d.categoria, 'no-dot')}</td><td class="right num strong">${U.fmtMoney(d.valor)}</td>
-          <td class="actions-cell"><button class="icon-btn sm ghost" data-edit="${esc(d.id)}" aria-label="Editar">${UI.icon('pencil')}</button><button class="icon-btn sm ghost" data-del="${esc(d.id)}" aria-label="Excluir">${UI.icon('trash-2')}</button></td></tr>`).join('')}
-        </tbody></table></div>` : UI.empty({ icon: 'receipt', title: 'Nenhuma despesa neste mês', text: 'Lance aluguel de espaço, material, deslocamento… para ver o resultado líquido.' })}</div>`;
-    body.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openDespesa(b.dataset.edit, mes)));
-    body.querySelectorAll('[data-del]').forEach((b) => (b.onclick = async () => { if (await UI.confirm({ title: 'Excluir despesa', message: 'Deseja excluir esta despesa?', danger: true, confirmText: 'Excluir' })) { Store.remove('despesas', b.dataset.del); UI.toast('Despesa excluída.'); MR3.refresh(); } }));
-  }
-
-  function openDespesa(id, mes) {
-    const d = id ? Store.getById('despesas', id) : { data: U.monthKey(U.today()) === mes ? U.today() : mes + '-01', categoria: 'espaco' };
-    UI.modal({
-      title: id ? 'Editar despesa' : 'Nova despesa', size: 'sm',
-      body: `<form id="dp-form" novalidate class="stack">
-        <div class="field"><label for="dp-desc">Descrição <span class="req">*</span></label><input id="dp-desc" class="input" name="descricao" value="${esc(d.descricao)}"></div>
-        <div class="field"><label for="dp-cat">Categoria</label><select id="dp-cat" class="input" name="categoria">${UI.options(D.CATEGORIAS_DESPESA, d.categoria)}</select></div>
-        <div class="field"><label for="dp-val">Valor <span class="req">*</span></label>${UI.moneyInput('valor', d.valor, 'id="dp-val"')}</div>
-        <div class="field"><label for="dp-data">Data <span class="req">*</span></label><input id="dp-data" type="date" class="input" name="data" value="${esc(d.data)}"></div>
-        ${!id ? '<label class="check"><input type="checkbox" name="repetir"> Repetir nos próximos 11 meses (despesa fixa)</label>' : ''}
-      </form>`,
-      footer: `<button class="btn" data-close>Cancelar</button><button class="btn btn-gold" id="dp-ok">${UI.icon('check')}Salvar</button>`,
-      onOpen(el, close) {
-        el.querySelector('#dp-ok').onclick = () => {
-          const form = el.querySelector('#dp-form');
-          const f = UI.formData(form);
-          const errs = {};
-          if (!f.descricao) errs.descricao = 'Informe a descrição.';
-          if (!(f.valor > 0)) errs.valor = 'Informe o valor.';
-          if (!U.isISODate(f.data)) errs.data = 'Data inválida.';
-          if (!UI.showErrors(form, errs)) return;
-          const rec = { descricao: f.descricao, categoria: f.categoria, valor: f.valor, data: f.data };
-          if (id) Store.update('despesas', id, rec);
-          else Store.batch(() => { const n = f.repetir ? 12 : 1; for (let i = 0; i < n; i++) Store.create('despesas', Object.assign({}, rec, { data: U.addMonths(f.data, i) })); });
-          UI.toast('Despesa salva.'); close(); MR3.refresh();
-        };
-      },
-    });
   }
 
   MR3.modules.financeiro = { title: 'Financeiro', render };

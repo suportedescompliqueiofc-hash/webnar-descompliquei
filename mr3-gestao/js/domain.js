@@ -34,10 +34,11 @@
   const FORMAS_PAGAMENTO = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', transferencia: 'Transferência' };
   const NIVEIS = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado', profissional: 'Profissional' };
   const TIPOS_PLANO = { mensal: 'Mensal', pacote: 'Pacote', avulso: 'Avulso' };
-  const CATEGORIAS_DESPESA = { espaco: 'Aluguel de espaço', material: 'Material', deslocamento: 'Deslocamento', marketing: 'Marketing', impostos: 'Impostos/taxas', outro: 'Outro' };
+  const TIPOS_COBRANCA = { mensalidade: 'Mensalidades', pacote: 'Pacotes', avulso: 'Avulsas' };
+  const CATEGORIAS_MATERIAL = { treino: 'Treinos', tecnica: 'Técnica', tatica: 'Tática', nutricao: 'Nutrição', recuperacao: 'Recuperação', avaliacao: 'Avaliações', apresentacao: 'Apresentações', outro: 'Outros' };
 
   const D = {
-    MOTIVOS_SAIDA, STATUS_SESSAO, STATUS_COBRANCA, FORMAS_PAGAMENTO, NIVEIS, TIPOS_PLANO, CATEGORIAS_DESPESA,
+    MOTIVOS_SAIDA, STATUS_SESSAO, STATUS_COBRANCA, FORMAS_PAGAMENTO, NIVEIS, TIPOS_PLANO, TIPOS_COBRANCA, CATEGORIAS_MATERIAL,
 
     /* ---------------- Atletas ---------------- */
     atleta(id) { return S().getById('atletas', id); },
@@ -165,10 +166,13 @@
       Object.keys(FORMAS_PAGAMENTO).forEach((f) => (porForma[f] = 0));
       pagsMes.forEach((p) => { porForma[p.forma] = (porForma[p.forma] || 0) + Number(p.valor || 0); });
       const pagantes = new Set(pagsMes.map((p) => p.atletaId));
-      const despesas = U.sum(S().query('despesas', (d) => d.data >= ini && d.data <= fim), (d) => d.valor);
+      // Recebido por tipo de cobrança (mensalidade / pacote / avulso)
+      const porTipo = { mensalidade: 0, pacote: 0, avulso: 0 };
+      pagsMes.forEach((p) => { const c = S().getById('cobrancas', p.cobrancaId); const t = (c && (c.tipo || (c.pacote ? 'pacote' : 'avulso'))) || 'avulso'; porTipo[t] = (porTipo[t] || 0) + Number(p.valor || 0); });
+      const pagas = cobs.filter((c) => D.statusCobranca(c, hoje) === 'pago').length;
       return {
         previsto: U.round2(previsto), recebido: U.round2(recebido), pendente: U.round2(pendente), atrasado: U.round2(atrasado),
-        atletasAtraso: atletasAtraso.size, porForma, despesas: U.round2(despesas), liquido: U.round2(recebido - despesas),
+        atletasAtraso: atletasAtraso.size, porForma, porTipo, pagas,
         ticketMedio: pagantes.size ? recebido / pagantes.size : 0, qtdCobrancas: cobs.length, qtdPagamentos: pagsMes.length,
       };
     },

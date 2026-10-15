@@ -1,6 +1,6 @@
 /* =========================================================================
    demo.js — gera dados de demonstração realistas (~26 atletas, 6 meses de
-   sessões, cobranças, pagamentos, saídas com motivos, avaliações e despesas).
+   sessões, cobranças, pagamentos, saídas com motivos, avaliações, fichas de cadastro e materiais).
    Todos os registros recebem `_demo: true` para poderem ser removidos
    sem afetar dados reais.
    ========================================================================= */
@@ -192,25 +192,61 @@
         }
       }
 
-      /* ---------- Despesas ---------- */
-      for (let m = U.monthKey(inicioFin); m <= U.monthKey(hoje); m = U.addMonthKey(m, 1)) {
-        mk('despesas', { data: `${m}-05`, descricao: 'Aluguel do espaço (academia parceira)', categoria: 'espaco', valor: 900 });
-        mk('despesas', { data: `${m}-${String(Math.min(25, U.daysInMonth(m))).padStart(2, '0')}`, descricao: 'Combustível e estacionamento', categoria: 'deslocamento', valor: 180 + int(0, 140) });
-        if (chance(0.5)) mk('despesas', { data: `${m}-${String(int(8, 20)).padStart(2, '0')}`, descricao: pick(['Cones e escada de agilidade', 'Elásticos e mini bands', 'Medicine ball', 'Reposição de coletes']), categoria: 'material', valor: int(80, 320) });
-        if (chance(0.3)) mk('despesas', { data: `${m}-${String(int(1, 28)).padStart(2, '0')}`, descricao: 'Impulsionamento Instagram', categoria: 'marketing', valor: int(60, 150) });
-      }
-      // Remove despesas futuras do mês atual
-      Store.removeWhere('despesas', (d) => d._demo && d.data > hoje);
+      /* ---------- Materiais (links) ---------- */
+      const atl = Store.query('atletas', (a) => a._demo && a.status === 'ativo');
+      const yt = (q) => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+      [
+        { titulo: 'Aquecimento dinâmico pré-jogo', categoria: 'treino', descricao: '10 minutos: skipping, abertura de quadril, deslocamento lateral e acelerações progressivas.', url: yt('aquecimento dinâmico futebol'), destaque: true },
+        { titulo: 'Pliometria para atletas — progressão', categoria: 'treino', descricao: 'Saltos com aterrissagem controlada. Começar com 3x6 e progredir semana a semana.', url: yt('pliometria para atletas progressão') },
+        { titulo: 'Prevenção de lesão no joelho (FIFA 11+)', categoria: 'recuperacao', descricao: 'Fazer 2x por semana antes do treino do clube.', url: yt('FIFA 11+ aquecimento completo'), destaque: true },
+        { titulo: 'Alimentação no dia de jogo', categoria: 'nutricao', descricao: 'O que comer 3h antes, no intervalo e depois do jogo.', url: yt('alimentação dia de jogo atleta') },
+        { titulo: 'Mobilidade de tornozelo e quadril', categoria: 'recuperacao', descricao: 'Rotina de 8 minutos para fazer em casa nos dias de descanso.', url: yt('mobilidade tornozelo quadril atletas') },
+      ].forEach((m, i) => mk('materiais', Object.assign({ tipo: 'link', atletaIds: atl.slice(i * 3, i * 3 + 4).map((a) => a.id) }, m)));
+
+      /* ---------- Fichas de cadastro ---------- */
+      const fichaDe = (a, extra) => Object.assign({
+        nome: a.nome, dataNascimento: a.dataNascimento, sexo: '', telefone: a.telefone, email: a.email, cidade: 'São Paulo — Zona Sul', escola: pick(['EC Pinheiros', 'Colégio Santa Cruz', 'Clube Atlético Ypiranga', 'Escolinha do bairro']),
+        respNome: a.responsavel ? a.responsavel.nome : '', respParentesco: a.responsavel ? pick(['Mãe', 'Pai']) : '', respTelefone: a.responsavel ? a.responsavel.telefone : '',
+        modalidade: a.modalidade, posicao: a.posicao, nivel: a.nivel, tempoPratica: pick(['1 a 3 anos', '3 a 5 anos', 'Mais de 5 anos']), treinosSemana: pick(['1 a 2', '3 a 4']), dominancia: pick(['Destro', 'Destro', 'Canhoto']),
+        objetivo: a.objetivo, competicoes: '', peso: String(int(50, 85)), altura: String(int(155, 190)), condicoes: ['Nenhuma'], lesoes: a.observacoesMedicas || '', cirurgias: '', dores: '', medicamentos: '', alergias: '',
+        planoSaude: pick(['Unimed', 'Bradesco Saúde', 'Não tem']), tipoSanguineo: pick(['O+', 'A+', 'Não sei']), emergNome: a.responsavel ? a.responsavel.nome : 'Contato familiar', emergTelefone: a.responsavel ? a.responsavel.telefone : `(11) 9${int(6000, 9999)}-${int(1000, 9999)}`,
+        dias: ['Seg', 'Qua'], periodos: ['Tarde'], comoConheceu: pick(['Indicação', 'Instagram']), observacoes: '', autorizaImagem: 'Sim', aceite: true, v: 1, enviadaEm: a.dataInicio,
+      }, extra || {});
+      atl.slice(0, 6).forEach((a) => {
+        const f = mk('fichas', { dados: fichaDe(a), origem: 'whatsapp', status: 'importada', atletaId: a.id, recebidaEm: a.dataInicio });
+        Store.update('atletas', a.id, { fichaId: f.id });
+      });
+      [
+        { nome: 'Kauã Ferreira Lopes', dataNascimento: '2011-03-14', telefone: '(11) 97412-5521', modalidade: 'Futebol', posicao: 'Ponta', nivel: 'intermediario', objetivo: 'Ganhar velocidade e passar na peneira do sub-15 em dezembro.', observacoesMedicas: '', responsavel: { nome: 'Juliana Ferreira', telefone: '(11) 98123-4400' }, dataInicio: U.addDays(hoje, -1) },
+        { nome: 'Marina Albuquerque', dataNascimento: '1999-08-02', telefone: '(11) 99654-2210', modalidade: 'Beach Tennis', posicao: 'Duplas', nivel: 'avancado', objetivo: 'Explosão e prevenção de lesão no ombro para o circuito.', observacoesMedicas: 'Tendinite no ombro direito (2024)', responsavel: null, dataInicio: hoje },
+      ].forEach((a) => mk('fichas', { dados: fichaDe(Object.assign({ email: '' }, a), { condicoes: a.observacoesMedicas ? [] : ['Nenhuma'], lesoes: a.observacoesMedicas, dores: a.observacoesMedicas ? 'Leve, ao sacar' : '' }), origem: 'whatsapp', status: 'pendente', atletaId: null, recebidaEm: a.dataInicio }));
 
       if (!cfg.chavePix) Store.setConfig({ chavePix: 'fabio.mr3@email.com', cidade: cfg.cidade || 'São Paulo' });
       Store.setMeta({ demo: true });
     });
   }
 
+  /** Gera uma imagem "Plano da semana" (canvas) e guarda como material de exemplo. */
+  async function imagemDemo() {
+    const c = document.createElement('canvas'); c.width = 1280; c.height = 720;
+    const g = c.getContext('2d');
+    const grd = g.createLinearGradient(0, 0, 1280, 720); grd.addColorStop(0, '#16306E'); grd.addColorStop(.7, '#08111F');
+    g.fillStyle = grd; g.fillRect(0, 0, 1280, 720);
+    g.fillStyle = '#D4AF37'; g.font = 'italic 800 64px Arial'; g.fillText('MR3', 70, 110);
+    g.fillStyle = '#F2F5FA'; g.font = '700 56px Arial'; g.fillText('Plano da semana — Base de força', 70, 200);
+    const dias = [['SEG', 'Força inferior · agachamento búlgaro 4x8'], ['TER', 'Pliometria · saltos em caixa 5x5'], ['QUA', 'Recuperação ativa · mobilidade 20 min'], ['QUI', 'Velocidade · sprints 6x20 m'], ['SEX', 'Força superior + core'], ['SÁB', 'Jogo / treino do clube']];
+    dias.forEach(([d, t], i) => { const y = 290 + i * 66; g.fillStyle = '#D4AF37'; g.font = '800 34px Arial'; g.fillText(d, 70, y); g.fillStyle = '#C9D3EA'; g.font = '400 32px Arial'; g.fillText(t, 190, y); });
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    if (!blob) return;
+    const id = await MR3.Files.put(blob);
+    Store.create('materiais', { _demo: true, titulo: 'Plano da semana — base de força', categoria: 'apresentacao', tipo: 'imagem', arquivoId: id, nomeArquivo: 'plano-da-semana.png', mime: 'image/png', tamanho: blob.size, descricao: 'Mostre no início da semana para alinhar o objetivo de cada treino.', destaque: true, atletaIds: [] });
+  }
+
   function temDemo() { return Store.COLLECTIONS.some((c) => Store.query(c, (x) => x._demo).length); }
 
   function limpar() {
     let n = 0;
+    Store.query('materiais', (m) => m._demo && m.arquivoId).forEach((m) => MR3.Files.remove(m.arquivoId).catch(() => {}));
     Store.batch(() => { Store.COLLECTIONS.forEach((c) => { n += Store.removeWhere(c, (x) => x._demo); }); Store.setMeta({ demo: false }); });
     return n;
   }
@@ -223,9 +259,10 @@
       if (!(await UI.confirm({ title: 'Carregar demonstração', message: 'Você já tem dados cadastrados. Os dados de demonstração serão ADICIONADOS aos seus e marcados para poderem ser removidos depois. Continuar?', confirmText: 'Adicionar demonstração' }))) return;
     }
     gerar();
+    await imagemDemo().catch(() => {});
     UI.toast('Dados de demonstração carregados.');
     MR3.go('#/dashboard');
   }
 
-  MR3.Demo = { gerar, limpar, temDemo, carregarComConfirmacao };
+  MR3.Demo = { gerar, limpar, temDemo, carregarComConfirmacao, imagemDemo };
 })();
