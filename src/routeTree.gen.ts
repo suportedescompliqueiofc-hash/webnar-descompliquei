@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as V2RouteImport } from './routes/v2'
 import { Route as ObrigadoRouteImport } from './routes/obrigado'
+import { Route as EventoRouteImport } from './routes/evento'
 import { Route as AgendamentoRouteImport } from './routes/agendamento'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const V2Route = V2RouteImport.update({
 const ObrigadoRoute = ObrigadoRouteImport.update({
   id: '/obrigado',
   path: '/obrigado',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventoRoute = EventoRouteImport.update({
+  id: '/evento',
+  path: '/evento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgendamentoRoute = AgendamentoRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agendamento': typeof AgendamentoRoute
+  '/evento': typeof EventoRoute
   '/obrigado': typeof ObrigadoRoute
   '/v2': typeof V2Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agendamento': typeof AgendamentoRoute
+  '/evento': typeof EventoRoute
   '/obrigado': typeof ObrigadoRoute
   '/v2': typeof V2Route
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agendamento': typeof AgendamentoRoute
+  '/evento': typeof EventoRoute
   '/obrigado': typeof ObrigadoRoute
   '/v2': typeof V2Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agendamento' | '/obrigado' | '/v2'
+  fullPaths: '/' | '/agendamento' | '/evento' | '/obrigado' | '/v2'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agendamento' | '/obrigado' | '/v2'
-  id: '__root__' | '/' | '/agendamento' | '/obrigado' | '/v2'
+  to: '/' | '/agendamento' | '/evento' | '/obrigado' | '/v2'
+  id: '__root__' | '/' | '/agendamento' | '/evento' | '/obrigado' | '/v2'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendamentoRoute: typeof AgendamentoRoute
+  EventoRoute: typeof EventoRoute
   ObrigadoRoute: typeof ObrigadoRoute
   V2Route: typeof V2Route
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/obrigado'
       fullPath: '/obrigado'
       preLoaderRoute: typeof ObrigadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evento': {
+      id: '/evento'
+      path: '/evento'
+      fullPath: '/evento'
+      preLoaderRoute: typeof EventoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agendamento': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendamentoRoute: AgendamentoRoute,
+  EventoRoute: EventoRoute,
   ObrigadoRoute: ObrigadoRoute,
   V2Route: V2Route,
 }
