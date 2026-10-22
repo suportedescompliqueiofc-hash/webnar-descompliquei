@@ -6,8 +6,8 @@
 | Campo | Valor |
 |---|---|
 | `{{NOME_DO_EVENTO}}` | nome definitivo (provisório na LP: "Encontro de Cases") |
-| `{{HORÁRIO}}` | confirmar (a conversa dizia "6h": manhã ou 18h?) |
-| `{{LOCAL}}` / `{{ENDEREÇO}}` | **Bauru de Nova Iguaçu** · endereço completo ainda a confirmar |
+| `{{HORÁRIO}}` | **18h em ponto** (assumido; se for 6h da manhã, ajustar) |
+| `{{LOCAL}}` / `{{ENDEREÇO}}` | **Bauru de Nova Iguaçu** · R. Arcelino Pereira Neves, 33 - Centro, Nova Iguaçu - RJ, 26220-010 |
 | `{{PRAZO}}` | 16/11 (sugestão: fecha o número com o restaurante) |
 | `{{QR_DOUTOR}}` | QR da LP com `?ref=<slug-do-doutor>` |
 | `{{QR_CONVIDADO}}` | QR da LP com `?ref=<slug-do-doutor>&c=1` |

@@ -25,12 +25,12 @@ const EVENT = {
   dateLabel: "30 de novembro",
   dateShort: "30/11",
   weekday: "Segunda-feira",
-  // TODO: confirmar horário (a conversa dizia "6h" — manhã ou 18h?)
-  timeLabel: "18h",
+  // Horário: 18h em ponto (se for 6h da manhã, ajustar aqui e em calendarStart/End)
+  timeLabel: "18h em ponto",
   city: "Nova Iguaçu",
-  // TODO: endereço completo do restaurante (a foto/endereço ainda vai ser enviado)
+  // Local: Bauru de Nova Iguaçu
   venueName: "Bauru de Nova Iguaçu",
-  venueAddress: "Nova Iguaçu, RJ",
+  venueAddress: "R. Arcelino Pereira Neves, 33 - Centro, Nova Iguaçu - RJ, 26220-010",
   seats: 30,
   // Prazo final de confirmação (para fechar o número com o restaurante)
   rsvpDeadline: "16/11",
@@ -82,12 +82,12 @@ export const Route = createFileRoute("/evento")({
       { title: `${EVENT.name} — ${EVENT.brand} · ${EVENT.dateShort}` },
       {
         name: "description",
-        content: `Convite exclusivo: ${EVENT.name}, ${EVENT.weekday}, ${EVENT.dateLabel}. Lugares limitados.`,
+        content: `Convite exclusivo: ${EVENT.name}, ${EVENT.weekday}, ${EVENT.dateLabel}. ${EVENT.seats} lugares.`,
       },
       // Evento fechado para convidados: não aparece em buscadores.
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: `${EVENT.name} — ${EVENT.brand}` },
-      { property: "og:description", content: "Convite exclusivo. Lugares limitados." },
+      { property: "og:description", content: `Convite exclusivo. ${EVENT.seats} lugares.` },
     ],
     links: [
       {
@@ -737,7 +737,7 @@ function Evento() {
               ) : (
                 <form onSubmit={submit} noValidate>
                   <div style={{ textAlign: "center" }}>
-                    <span className="lx-eyebrow both">Lugares limitados</span>
+                    <span className="lx-eyebrow both">{EVENT.seats} lugares</span>
                     <h2 className="lx-h2">
                       Reserve o <em className="lx-gold">seu lugar</em>
                     </h2>
