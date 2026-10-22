@@ -305,8 +305,8 @@ const CSS = `
 /* ---------------------------- componentes ---------------------------- */
 
 // ===== SOM: início (sem arquivos de áudio; tudo é sintetizado pelo navegador) =====
-// Estética: sopros de ar e batidas graves e macias. Sem tom agudo, sem brilho.
-// O grave carrega harmônicos (2x e 3x a frequência) para continuar audível em alto-falante de celular.
+// Estética de cinema, mas elegante: risers, whooshes que cruzam o estéreo e impactos graves com cauda.
+// Sem tom agudo, sem brilho. O grave carrega harmônicos para continuar audível em alto-falante de celular.
 // O navegador só libera áudio depois de um toque, por isso a abertura exige o toque em "Entrar".
 type Whoosh = {
   dur: number;
@@ -316,20 +316,26 @@ type Whoosh = {
   ceiling: number;
   gain: number;
   attack: number;
+  pan?: [number, number]; // varre da esquerda para a direita (ou o contrário)
 };
 
-// Um "ush" grave: ruído suavizado passando por um filtro que abre e fecha.
-function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
-  const length = Math.ceil(ctx.sampleRate * (o.dur + 0.3));
-  const noise = ctx.createBuffer(1, length, ctx.sampleRate);
-  const data = noise.getChannelData(0);
+function softNoise(ctx: BaseAudioContext, seconds: number, smoothing: number) {
+  const length = Math.ceil(ctx.sampleRate * seconds);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
   let smooth = 0;
   for (let i = 0; i < length; i++) {
-    smooth += (Math.random() * 2 - 1 - smooth) * 0.25; // suaviza o chiado agudo
+    smooth += (Math.random() * 2 - 1 - smooth) * smoothing; // suaviza o chiado agudo
     data[i] = smooth;
   }
   const src = ctx.createBufferSource();
-  src.buffer = noise;
+  src.buffer = buffer;
+  return src;
+}
+
+// O "whoosh": ruído suavizado passando por um filtro que abre e fecha, podendo cruzar o estéreo.
+function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
+  const src = softNoise(ctx, o.dur + 0.3, 0.25);
 
   const band = ctx.createBiquadFilter();
   band.type = "bandpass";
@@ -351,43 +357,128 @@ function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
   src.connect(band);
   band.connect(soft);
   soft.connect(env);
-  env.connect(out);
+  if (o.pan && typeof ctx.createStereoPanner === "function") {
+    const panner = ctx.createStereoPanner();
+    panner.pan.setValueAtTime(o.pan[0], t0);
+    panner.pan.linearRampToValueAtTime(o.pan[1], t0 + o.dur);
+    env.connect(panner);
+    panner.connect(out);
+  } else {
+    env.connect(out);
+  }
   src.start(t0);
   src.stop(t0 + o.dur + 0.1);
 }
 
-// Uma onda grave que sobe e desce devagar (o "corpo" do som de entrada).
-function swell(
+// O "riser": tensão que sobe e cresce até cortar seco (feito para terminar num impacto).
+function riser(
   ctx: BaseAudioContext,
   out: AudioNode,
   t0: number,
-  o: { from: number; peak: number; to: number; dur: number; attack: number; gain: number },
+  o: { dur: number; from: number; to: number; gain: number },
 ) {
+  const end = t0 + o.dur;
   const env = ctx.createGain();
   env.gain.setValueAtTime(0.0001, t0);
-  env.gain.exponentialRampToValueAtTime(o.gain, t0 + o.attack);
-  env.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+  env.gain.exponentialRampToValueAtTime(o.gain, end - 0.02);
+  env.gain.exponentialRampToValueAtTime(0.0001, end + 0.04);
   env.connect(out);
+
+  const src = softNoise(ctx, o.dur + 0.3, 0.3);
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 1.1;
+  band.frequency.setValueAtTime(o.from, t0);
+  band.frequency.exponentialRampToValueAtTime(o.to, end);
+  const soft = ctx.createBiquadFilter();
+  soft.type = "lowpass";
+  soft.frequency.value = 1600;
+  src.connect(band);
+  band.connect(soft);
+  soft.connect(env);
+  src.start(t0);
+  src.stop(end + 0.1);
+
+  // um tom grave que sobe junto, dando corpo à tensão
   [
     [1, 1],
-    [2, 0.8],
-    [3, 0.4],
+    [2, 0.6],
   ].forEach(([mult, amp]) => {
     const osc = ctx.createOscillator();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(o.from * mult, t0);
-    osc.frequency.exponentialRampToValueAtTime(o.peak * mult, t0 + o.attack);
-    osc.frequency.exponentialRampToValueAtTime(o.to * mult, t0 + o.dur);
+    osc.frequency.setValueAtTime(70 * mult, t0);
+    osc.frequency.exponentialRampToValueAtTime(150 * mult, end);
+    const g = ctx.createGain();
+    g.gain.value = amp * 0.5;
+    osc.connect(g);
+    g.connect(env);
+    osc.start(t0);
+    osc.stop(end + 0.1);
+  });
+}
+
+// O impacto: um "boom" grave que cai de tom, com corpo de ruído e uma cauda de ressonância.
+function boom(
+  ctx: BaseAudioContext,
+  out: AudioNode,
+  t0: number,
+  o: { size: number; gain: number; base?: number },
+) {
+  const base = o.base ?? 95;
+  const dur = 0.35 + o.size * 0.9;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t0);
+  env.gain.exponentialRampToValueAtTime(o.gain, t0 + 0.006);
+  env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  env.connect(out);
+  [
+    [1, 1],
+    [2, 0.7],
+    [3, 0.35],
+  ].forEach(([mult, amp]) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(base * mult, t0);
+    osc.frequency.exponentialRampToValueAtTime(base * 0.34 * mult, t0 + dur);
     const g = ctx.createGain();
     g.gain.value = amp;
     osc.connect(g);
     g.connect(env);
     osc.start(t0);
-    osc.stop(t0 + o.dur + 0.05);
+    osc.stop(t0 + dur + 0.05);
   });
+
+  // corpo do impacto
+  const body = softNoise(ctx, 0.5, 0.2);
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 380;
+  const bodyEnv = ctx.createGain();
+  bodyEnv.gain.setValueAtTime(0.0001, t0);
+  bodyEnv.gain.exponentialRampToValueAtTime(o.gain * 0.7, t0 + 0.004);
+  bodyEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12 + o.size * 0.25);
+  body.connect(lp);
+  lp.connect(bodyEnv);
+  bodyEnv.connect(out);
+  body.start(t0);
+  body.stop(t0 + 0.5);
+
+  // cauda ressonante (só nos impactos maiores)
+  if (o.size >= 0.6) {
+    whoosh(ctx, out, t0 + 0.02, {
+      dur: 0.4 + o.size * 1.5,
+      from: 260,
+      peak: 200,
+      to: 120,
+      ceiling: 520,
+      gain: o.gain * 0.35,
+      attack: 0.05,
+    });
+  }
 }
 
-// Uma batida grave e curta, como um toque macio numa superfície.
+// Um toque minúsculo e grave, usado ao clicar nos campos.
 function pop(
   ctx: BaseAudioContext,
   out: AudioNode,
@@ -416,24 +507,27 @@ function pop(
   });
 }
 
-// Som de entrada: um "whoom" grave com o sopro de ar por cima.
+// Entrada: riser de tensão → impacto grave → o ar escapando em volta (~3 s).
 function scheduleEntrance(ctx: BaseAudioContext, out: AudioNode, t0: number) {
-  whoosh(ctx, out, t0, {
-    dur: 2,
-    from: 110,
-    peak: 380,
-    to: 150,
-    ceiling: 700,
-    gain: 1.1,
-    attack: 0.6,
+  riser(ctx, out, t0, { dur: 1.1, from: 140, to: 1300, gain: 0.4 });
+  boom(ctx, out, t0 + 1.1, { size: 1.3, gain: 0.38 });
+  whoosh(ctx, out, t0 + 1.1, {
+    dur: 1.9,
+    from: 520,
+    peak: 360,
+    to: 120,
+    ceiling: 900,
+    gain: 0.3,
+    attack: 0.05,
+    pan: [0.5, -0.5],
   });
-  swell(ctx, out, t0, { from: 80, peak: 118, to: 72, dur: 2, attack: 0.55, gain: 0.22 });
 }
 
 type UiSound = "reveal" | "tap" | "focus" | "error" | "success";
 let audio: { ctx: AudioContext; master: GainNode } | null = null;
 let soundOn = true;
 let lastSoftAt = 0;
+let revealSide = 1;
 
 // 0,12 s de silêncio: no iPhone, tocar um <audio> libera o som mesmo com o modo silencioso ligado.
 const SILENT_WAV =
@@ -476,7 +570,7 @@ function setSoundEnabled(on: boolean) {
   if (audio) audio.master.gain.setTargetAtTime(on ? 1 : 0, audio.ctx.currentTime, 0.03);
 }
 
-// Sons discretos das ações. Antes do "Entrar" (ou com o som desligado) não fazem nada.
+// Sons das ações. Antes do "Entrar" (ou com o som desligado) não fazem nada.
 function playUi(kind: UiSound) {
   if (!audio || !soundOn || audio.ctx.state !== "running") return;
   if (kind === "reveal" || kind === "focus") {
@@ -487,37 +581,44 @@ function playUi(kind: UiSound) {
   const { ctx, master } = audio;
   const t = ctx.currentTime + 0.01;
   switch (kind) {
-    case "reveal":
+    case "reveal": {
+      // um whoosh que "passa" de um lado ao outro, alternando a direção a cada seção
+      const side = revealSide;
+      revealSide = -revealSide;
       whoosh(ctx, master, t, {
-        dur: 0.6,
-        from: 100,
-        peak: 300,
-        to: 130,
-        ceiling: 600,
-        gain: 0.8,
-        attack: 0.2,
+        dur: 0.75,
+        from: 180,
+        peak: 800,
+        to: 220,
+        ceiling: 1400,
+        gain: 1.05,
+        attack: 0.3,
+        pan: [0.8 * side, -0.8 * side],
       });
       break;
+    }
     case "tap":
-      pop(ctx, master, t, { from: 170, to: 80, dur: 0.2, gain: 0.3 });
+      boom(ctx, master, t, { size: 0.25, gain: 0.3, base: 120 });
       break;
     case "focus":
       pop(ctx, master, t, { from: 240, to: 170, dur: 0.08, gain: 0.1 });
       break;
     case "error":
-      pop(ctx, master, t, { from: 120, to: 62, dur: 0.4, gain: 0.34 });
+      boom(ctx, master, t, { size: 0.3, gain: 0.38, base: 105 });
       break;
     case "success":
-      whoosh(ctx, master, t, {
-        dur: 1.3,
-        from: 110,
+      riser(ctx, master, t, { dur: 0.55, from: 160, to: 1000, gain: 0.3 });
+      boom(ctx, master, t + 0.55, { size: 0.7, gain: 0.34 });
+      whoosh(ctx, master, t + 0.55, {
+        dur: 1.2,
+        from: 480,
         peak: 340,
-        to: 140,
-        ceiling: 650,
-        gain: 0.9,
-        attack: 0.4,
+        to: 120,
+        ceiling: 900,
+        gain: 0.28,
+        attack: 0.05,
+        pan: [-0.4, 0.4],
       });
-      pop(ctx, master, t + 0.1, { from: 130, to: 80, dur: 0.5, gain: 0.3 });
       break;
   }
 }
