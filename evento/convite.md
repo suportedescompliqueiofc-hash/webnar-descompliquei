@@ -1,4 +1,4 @@
-# Convite — Encontro de Cases · 26/11
+# Convite — Encontro de Cases · 30/11
 
 > Texto do convite de papel (entregue no consultório) + mensagens de apoio.
 > Itens entre `{{ }}` ainda precisam ser preenchidos antes de imprimir.
@@ -24,7 +24,7 @@
 
 **Interior**
 
-> Na noite de **26 de novembro**, a Altta reúne um grupo fechado de profissionais
+> Na noite de **30 de novembro**, a Altta reúne um grupo fechado de profissionais
 > para ouvir **3 grandes cases** de quem já percorreu o caminho, e conhecer as
 > **tendências** que vão definir os próximos anos do seu consultório.
 >
@@ -32,7 +32,7 @@
 > que vale a pena ter por perto.
 >
 > **{{NOME_DO_EVENTO}}**
-> Quinta-feira, 26/11 · {{HORÁRIO}}
+> Segunda-feira, 30/11 · {{HORÁRIO}}
 > {{LOCAL}} · {{ENDEREÇO}}
 >
 > Lugares limitados. Confirme sua presença até {{PRAZO}}:
@@ -60,7 +60,7 @@
 > mudando o consultório.
 >
 > **{{NOME_DO_EVENTO}}**
-> Quinta-feira, 26/11 · {{HORÁRIO}}
+> Segunda-feira, 30/11 · {{HORÁRIO}}
 > {{LOCAL}} · {{ENDEREÇO}}
 >
 > Os lugares são poucos. Para garantir o seu, confirme até {{PRAZO}}:
@@ -91,14 +91,14 @@
 
 ## 6. Lembretes
 
-**23/11 (D-3)**
+**26/11 (quinta, D-4)**
 
-> {{NOME}}, quinta-feira é o nosso encontro! {{HORÁRIO}}, no {{LOCAL}}
+> {{NOME}}, segunda-feira é o nosso encontro! {{HORÁRIO}}, no {{LOCAL}}
 > ({{ENDEREÇO}}). Te esperamos!
 
-**25/11 (véspera)**
+**29/11 (domingo, véspera)**
 
-> {{NOME}}, é amanhã! {{HORÁRIO}} no {{LOCAL}}. Qualquer imprevisto, me avisa
+> {{NOME}}, é amanhã (segunda)! {{HORÁRIO}} no {{LOCAL}}. Qualquer imprevisto, me avisa
 > por aqui para ajustarmos o seu lugar.
 
 ---
