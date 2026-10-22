@@ -157,8 +157,6 @@ const CSS = `
 .lx-intro-mark{display:flex;gap:.34em;font-size:clamp(34px,9vw,60px);font-weight:300;letter-spacing:.1em;color:var(--gold-hi)}
 .lx-intro-mark span{opacity:0;animation:lxLetter 1s cubic-bezier(.2,.7,.2,1) both}
 .lx-intro-actions{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:14px;opacity:0;animation:lxFade 1.2s 2.5s ease both}
-.lx-intro-mute{background:none;border:0;padding:6px;cursor:pointer;font:400 11px 'Jost',sans-serif;letter-spacing:.32em;text-transform:uppercase;color:var(--mut);text-decoration:underline;text-decoration-color:rgba(200,169,106,.5);text-underline-offset:7px;transition:color .3s}
-.lx-intro-mute:hover{color:var(--gold-hi)}
 .lx-intro-sub{margin:0;font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--mut);opacity:0;animation:lxFade 1s 1.5s ease both}
 
 /* hero */
@@ -255,6 +253,12 @@ const CSS = `
 .lx-venue figcaption b{font:italic 400 clamp(24px,4vw,34px) 'Cormorant Garamond',Georgia,serif}
 .lx-venue figcaption small{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
 
+/* botão de som */
+.lx-sound{position:fixed;right:16px;bottom:16px;z-index:60;display:grid;place-items:center;width:42px;height:42px;
+  border-radius:50%;border:1px solid var(--line);background:rgba(10,10,10,.72);color:var(--gold-hi);cursor:pointer;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .3s,color .3s}
+.lx-sound:hover{border-color:var(--gold);color:#fff}
+
 /* mapa */
 .lx-map{max-width:520px;height:220px;margin:26px auto 0;padding:6px;border:1px solid var(--line);background:#0c0c0c}
 .lx-map iframe{display:block;width:100%;height:100%;border:0;
@@ -300,6 +304,165 @@ const CSS = `
 
 /* ---------------------------- componentes ---------------------------- */
 
+// ===== SOM: início (sem arquivos de áudio; tudo é sintetizado pelo navegador) =====
+// Estética: sopros de ar e batidas graves e suaves. Sem tom agudo, sem brilho.
+// O navegador só libera áudio depois de um toque, por isso a abertura exige o toque em "Entrar".
+type Whoosh = {
+  dur: number;
+  from: number;
+  peak: number;
+  to: number;
+  ceiling: number;
+  gain: number;
+  attack: number;
+};
+
+// Um "ush": ruído suavizado passando por um filtro que abre e fecha.
+function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
+  const length = Math.ceil(ctx.sampleRate * (o.dur + 0.3));
+  const noise = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = noise.getChannelData(0);
+  let smooth = 0;
+  for (let i = 0; i < length; i++) {
+    smooth += (Math.random() * 2 - 1 - smooth) * 0.35; // suaviza o chiado agudo
+    data[i] = smooth;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = noise;
+
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 0.7;
+  band.frequency.setValueAtTime(o.from, t0);
+  band.frequency.exponentialRampToValueAtTime(o.peak, t0 + o.attack + 0.1);
+  band.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
+
+  const soft = ctx.createBiquadFilter();
+  soft.type = "lowpass";
+  soft.frequency.value = o.ceiling;
+  soft.Q.value = 0.4;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t0);
+  env.gain.exponentialRampToValueAtTime(o.gain, t0 + o.attack);
+  env.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+
+  src.connect(band);
+  band.connect(soft);
+  soft.connect(env);
+  env.connect(out);
+  src.start(t0);
+  src.stop(t0 + o.dur + 0.1);
+}
+
+// Uma batida grave e curta, como um toque macio numa superfície.
+function pop(
+  ctx: BaseAudioContext,
+  out: AudioNode,
+  t0: number,
+  o: { from: number; to: number; dur: number; gain: number },
+) {
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(o.from, t0);
+  osc.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(o.gain, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+  osc.connect(gain);
+  gain.connect(out);
+  osc.start(t0);
+  osc.stop(t0 + o.dur + 0.05);
+}
+
+function scheduleEntrance(ctx: BaseAudioContext, out: AudioNode, t0: number) {
+  whoosh(ctx, out, t0, {
+    dur: 1.7,
+    from: 260,
+    peak: 1100,
+    to: 380,
+    ceiling: 1800,
+    gain: 0.9,
+    attack: 0.5,
+  });
+}
+
+type UiSound = "reveal" | "tap" | "focus" | "error" | "success";
+let audio: { ctx: AudioContext; master: GainNode } | null = null;
+let soundOn = true;
+let lastSoftAt = 0;
+
+function playEntrance() {
+  try {
+    const AC =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    void ctx.resume();
+    const master = ctx.createGain();
+    master.gain.value = soundOn ? 1 : 0;
+    master.connect(ctx.destination);
+    audio = { ctx, master };
+    scheduleEntrance(ctx, master, ctx.currentTime + 0.05);
+  } catch {
+    // sem áudio disponível: segue em silêncio
+  }
+}
+
+function setSoundEnabled(on: boolean) {
+  soundOn = on;
+  if (audio) audio.master.gain.setTargetAtTime(on ? 1 : 0, audio.ctx.currentTime, 0.03);
+}
+
+// Sons discretos das ações. Antes do "Entrar" (ou com o som desligado) não fazem nada.
+function playUi(kind: UiSound) {
+  if (!audio || !soundOn || audio.ctx.state !== "running") return;
+  if (kind === "reveal" || kind === "focus") {
+    const now = performance.now();
+    if (now - lastSoftAt < 140) return; // evita rajadas
+    lastSoftAt = now;
+  }
+  const { ctx, master } = audio;
+  const t = ctx.currentTime + 0.01;
+  switch (kind) {
+    case "reveal":
+      whoosh(ctx, master, t, {
+        dur: 0.5,
+        from: 240,
+        peak: 620,
+        to: 300,
+        ceiling: 1100,
+        gain: 0.5,
+        attack: 0.18,
+      });
+      break;
+    case "tap":
+      pop(ctx, master, t, { from: 190, to: 85, dur: 0.16, gain: 0.22 });
+      break;
+    case "focus":
+      pop(ctx, master, t, { from: 420, to: 300, dur: 0.07, gain: 0.07 });
+      break;
+    case "error":
+      pop(ctx, master, t, { from: 130, to: 70, dur: 0.32, gain: 0.28 });
+      break;
+    case "success":
+      whoosh(ctx, master, t, {
+        dur: 1.1,
+        from: 260,
+        peak: 900,
+        to: 360,
+        ceiling: 1500,
+        gain: 0.8,
+        attack: 0.35,
+      });
+      pop(ctx, master, t + 0.1, { from: 150, to: 95, dur: 0.4, gain: 0.22 });
+      break;
+  }
+}
+// ===== SOM: fim =====
+
 function Reveal({
   children,
   delay = 0,
@@ -322,6 +485,7 @@ function Reveal({
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          playUi("reveal");
           setSeen(true);
           io.disconnect();
         }
@@ -432,71 +596,6 @@ function PersonFields({
   );
 }
 
-// Som de entrada sintetizado (sem arquivo de áudio): sinos suaves sobre um pad quente.
-// O navegador só libera áudio depois de um toque do usuário, por isso a abertura pede esse toque.
-function scheduleEntrance(ctx: BaseAudioContext, out: AudioNode, t0: number) {
-  const master = ctx.createGain();
-  master.gain.setValueAtTime(0.0001, t0);
-  master.gain.exponentialRampToValueAtTime(0.9, t0 + 0.4);
-  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 6.5);
-  master.connect(out);
-
-  const lowpass = ctx.createBiquadFilter();
-  lowpass.type = "lowpass";
-  lowpass.frequency.value = 900;
-  lowpass.connect(master);
-  [110, 164.81, 220].forEach((freq, i) => {
-    [-4, 4].forEach((cents) => {
-      const osc = ctx.createOscillator();
-      osc.type = "sawtooth";
-      osc.frequency.value = freq;
-      osc.detune.value = cents;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.045 - i * 0.008;
-      osc.connect(gain);
-      gain.connect(lowpass);
-      osc.start(t0);
-      osc.stop(t0 + 6.6);
-    });
-  });
-
-  [880, 1318.51, 1760].forEach((freq, i) => {
-    const start = t0 + 0.35 + i * 0.22;
-    [
-      [1, 1],
-      [2.76, 0.32],
-      [5.4, 0.12],
-    ].forEach(([ratio, amp]) => {
-      const osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.value = freq * ratio;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.22 * amp, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 3.2);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(start);
-      osc.stop(start + 3.3);
-    });
-  });
-}
-
-function playEntrance() {
-  try {
-    const AC =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
-    void ctx.resume();
-    scheduleEntrance(ctx, ctx.destination, ctx.currentTime + 0.05);
-    window.setTimeout(() => void ctx.close(), 7500);
-  } catch {
-    // sem áudio disponível: segue em silêncio
-  }
-}
-
 type IntroState = "show" | "leaving" | "gone";
 
 function Evento() {
@@ -504,6 +603,8 @@ function Evento() {
   const isGuest = c === "1";
 
   const [intro, setIntro] = useState<IntroState>("show");
+  const [hasAudio, setHasAudio] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [nome, setNome] = useState("");
   const [eu, setEu] = useState<Person>(EMPTY_PERSON);
   const [convidado, setConvidado] = useState<Person>(EMPTY_PERSON);
@@ -525,11 +626,19 @@ function Evento() {
     };
   }, [intro]);
 
-  const enter = (withSound: boolean) => {
+  const enter = () => {
     if (intro !== "show") return;
-    if (withSound) playEntrance();
+    playEntrance();
+    setHasAudio(true);
     setIntro("leaving");
     window.setTimeout(() => setIntro("gone"), 1100);
+  };
+
+  const toggleSound = () => {
+    const turningOn = muted;
+    setSoundEnabled(turningOn);
+    setMuted(!muted);
+    if (turningOn) playUi("tap");
   };
 
   const submit = async (e: FormEvent) => {
@@ -544,7 +653,10 @@ function Evento() {
     } else {
       invalid = validatePerson(convidado, " do convidado");
     }
-    if (invalid) return setErr(invalid);
+    if (invalid) {
+      playUi("error");
+      return setErr(invalid);
+    }
 
     setErr("");
     setLoading(true);
@@ -582,7 +694,9 @@ function Evento() {
         throw new Error("RSVP_WEBHOOK_URL não configurado");
       }
       setConfirmed(true);
+      playUi("success");
     } catch {
+      playUi("error");
       setErr("Não conseguimos registrar sua confirmação agora. Tente novamente em instantes.");
     } finally {
       setLoading(false);
@@ -613,7 +727,7 @@ function Evento() {
             </div>
             <p className="lx-intro-sub">Convite exclusivo</p>
             <div className="lx-intro-actions">
-              <button type="button" className="lx-btn solid" onClick={() => enter(true)}>
+              <button type="button" className="lx-btn solid" onClick={enter}>
                 <svg
                   viewBox="0 0 24 24"
                   width="16"
@@ -626,15 +740,40 @@ function Evento() {
                   <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
                   <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" strokeLinecap="round" />
                 </svg>
-                Entrar com som
-              </button>
-              <button type="button" className="lx-intro-mute" onClick={() => enter(false)}>
-                Entrar sem som
+                Entrar
               </button>
             </div>
             <span className="lx-intro-line b" />
           </div>
         </div>
+      )}
+
+      {hasAudio && (
+        <button
+          type="button"
+          className="lx-sound"
+          onClick={toggleSound}
+          aria-pressed={!muted}
+          aria-label={muted ? "Ativar som" : "Desativar som"}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+            {muted ? (
+              <path d="M16 9.5l5 5M21 9.5l-5 5" />
+            ) : (
+              <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+            )}
+          </svg>
+        </button>
       )}
 
       {/* HERO */}
@@ -682,6 +821,7 @@ function Evento() {
 
         <a
           href="#confirmar"
+          onClick={() => playUi("tap")}
           className="lx-btn solid ha"
           style={{ "--d": "1s", marginTop: 52 } as CSSProperties}
         >
@@ -808,6 +948,7 @@ function Evento() {
                   </p>
                   <a
                     href={calendarUrl()}
+                    onClick={() => playUi("tap")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="lx-btn"
@@ -817,7 +958,13 @@ function Evento() {
                   </a>
                 </div>
               ) : (
-                <form onSubmit={submit} noValidate>
+                <form
+                  onSubmit={submit}
+                  noValidate
+                  onFocus={(e) => {
+                    if (e.target instanceof HTMLInputElement) playUi("focus");
+                  }}
+                >
                   <div style={{ textAlign: "center" }}>
                     <span className="lx-eyebrow both">{EVENT.seats} lugares</span>
                     <h2 className="lx-h2">
@@ -910,6 +1057,7 @@ function Evento() {
             <div style={{ textAlign: "center" }}>
               <a
                 className="lx-maplink"
+                onClick={() => playUi("tap")}
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(EVENT.venueAddress)}`}
                 target="_blank"
                 rel="noopener noreferrer"
