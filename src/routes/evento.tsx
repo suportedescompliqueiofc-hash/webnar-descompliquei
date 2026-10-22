@@ -27,10 +27,10 @@ const EVENT = {
   weekday: "Segunda-feira",
   // TODO: confirmar horário (a conversa dizia "6h" — manhã ou 18h?)
   timeLabel: "18h",
-  city: "Rio de Janeiro",
-  // TODO: nome e endereço do restaurante
-  venueName: "Restaurante a confirmar",
-  venueAddress: "Rio de Janeiro, RJ",
+  city: "Nova Iguaçu",
+  // TODO: endereço completo do restaurante (a foto/endereço ainda vai ser enviado)
+  venueName: "Bauru de Nova Iguaçu",
+  venueAddress: "Nova Iguaçu, RJ",
   seats: 30,
   // Prazo final de confirmação (para fechar o número com o restaurante)
   rsvpDeadline: "16/11",
@@ -58,6 +58,15 @@ const PROGRAMA = [
 // Para onde a confirmação é enviada (n8n, Make, Zapier, etc.).
 // TODO: preencher. Enquanto vazio, o envio só funciona em ambiente de desenvolvimento.
 const RSVP_WEBHOOK_URL = "";
+
+// Foto do local (opcional): coloque o arquivo em src/assets/local.jpg (ou .jpeg/.png/.webp)
+// e a seção "O local" aparece sozinha. Sem arquivo, a seção não é exibida.
+const venuePhotos = import.meta.glob("../assets/local.{jpg,jpeg,png,webp}", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
+const VENUE_PHOTO: string | undefined = Object.values(venuePhotos)[0];
 
 export const Route = createFileRoute("/evento")({
   // ?ref=nome-do-doutor identifica quem convidou; ?c=1 marca que é o convite do acompanhante
@@ -222,6 +231,21 @@ const CSS = `
 .lx-field input:focus{border-bottom-color:var(--gold-hi)}
 .lx-guest{margin-top:34px;padding-top:6px;border-top:1px solid var(--line)}
 .lx-err{margin:20px 0 0;color:#e58b7a;font-size:14px}
+.lx-row{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.lx-guest-title{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-style:italic;color:var(--gold-hi)}
+.lx-check{display:flex;align-items:center;gap:12px;margin-top:26px;cursor:pointer;font-size:14px;color:var(--mut)}
+.lx-check input{appearance:none;-webkit-appearance:none;width:17px;height:17px;margin:0;border:1px solid var(--gold);background:transparent;cursor:pointer;transition:background .3s}
+.lx-check input:checked{background:linear-gradient(135deg,#b8934f,#f1e1b6)}
+.lx-check input:focus-visible{outline:1px solid var(--gold-hi);outline-offset:3px}
+
+/* local */
+.lx-venue{position:relative;margin-top:44px;border:1px solid var(--line);padding:9px}
+.lx-venue img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.lx-venue::after{content:"";position:absolute;inset:9px;pointer-events:none;
+  background:linear-gradient(180deg,transparent 55%,rgba(7,7,7,.78))}
+.lx-venue figcaption{position:absolute;z-index:1;left:30px;bottom:26px;right:30px;display:flex;flex-direction:column;gap:4px}
+.lx-venue figcaption b{font:italic 400 clamp(24px,4vw,34px) 'Cormorant Garamond',Georgia,serif}
+.lx-venue figcaption small{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
 
 /* revelar ao rolar */
 .lx-rv{opacity:0;transform:translateY(30px);filter:blur(6px);
@@ -309,6 +333,86 @@ function Silhouette() {
   );
 }
 
+type Person = { nome: string; sobrenome: string; instagram: string; phone: string };
+const EMPTY_PERSON: Person = { nome: "", sobrenome: "", instagram: "", phone: "" };
+
+const isInstagram = (v: string) => /^@?[A-Za-z0-9._]{1,30}$/.test(v.trim());
+const normalizeInstagram = (v: string) => `@${v.trim().replace(/^@/, "")}`;
+
+// label vem com espaço à frente quando existe (ex.: " do convidado")
+function validatePerson(p: Person, label: string): string | null {
+  if (p.nome.trim().length < 2) return `Informe o nome${label}.`;
+  if (p.sobrenome.trim().length < 2) return `Informe o sobrenome${label}.`;
+  if (!isInstagram(p.instagram)) return `Informe o @ do Instagram${label}.`;
+  if (p.phone.replace(/\D/g, "").length < 10) return `Telefone${label} inválido.`;
+  return null;
+}
+
+function personPayload(p: Person) {
+  return {
+    nome: `${p.nome.trim()} ${p.sobrenome.trim()}`.trim(),
+    instagram: p.instagram.trim() ? normalizeInstagram(p.instagram) : "",
+    whatsapp: p.phone.replace(/\D/g, ""),
+  };
+}
+
+// Nome, sobrenome, @ do Instagram e telefone. `own` = a própria pessoa preenchendo (liga o autopreenchimento).
+function PersonFields({
+  value,
+  onChange,
+  own = false,
+}: {
+  value: Person;
+  onChange: (p: Person) => void;
+  own?: boolean;
+}) {
+  const set = (k: keyof Person, v: string) => onChange({ ...value, [k]: v });
+  return (
+    <>
+      <div className="lx-row">
+        <label className="lx-field">
+          <span>Nome</span>
+          <input
+            placeholder="Nome"
+            autoComplete={own ? "given-name" : "off"}
+            value={value.nome}
+            onChange={(e) => set("nome", e.target.value)}
+          />
+        </label>
+        <label className="lx-field">
+          <span>Sobrenome</span>
+          <input
+            placeholder="Sobrenome"
+            autoComplete={own ? "family-name" : "off"}
+            value={value.sobrenome}
+            onChange={(e) => set("sobrenome", e.target.value)}
+          />
+        </label>
+      </div>
+      <label className="lx-field">
+        <span>Instagram</span>
+        <input
+          placeholder="@usuario"
+          autoCapitalize="none"
+          autoCorrect="off"
+          value={value.instagram}
+          onChange={(e) => set("instagram", e.target.value)}
+        />
+      </label>
+      <label className="lx-field">
+        <span>Telefone</span>
+        <input
+          placeholder="(00) 00000-0000"
+          inputMode="tel"
+          autoComplete={own ? "tel" : "off"}
+          value={value.phone}
+          onChange={(e) => set("phone", maskPhone(e.target.value))}
+        />
+      </label>
+    </>
+  );
+}
+
 type IntroState = "show" | "leaving" | "gone";
 
 function Evento() {
@@ -317,10 +421,9 @@ function Evento() {
 
   const [intro, setIntro] = useState<IntroState>("show");
   const [nome, setNome] = useState("");
-  const [phone, setPhone] = useState("");
-  const [especialidade, setEspecialidade] = useState("");
-  const [convidadoNome, setConvidadoNome] = useState("");
-  const [convidadoPhone, setConvidadoPhone] = useState("");
+  const [eu, setEu] = useState<Person>(EMPTY_PERSON);
+  const [convidado, setConvidado] = useState<Person>(EMPTY_PERSON);
+  const [semConvidado, setSemConvidado] = useState(false);
   const [convidadoPor, setConvidadoPor] = useState(ref ? prettifyRef(ref) : "");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -356,30 +459,43 @@ function Evento() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (nome.trim().split(/\s+/).length < 2) return setErr("Informe seu nome e sobrenome.");
-    if (phone.replace(/\D/g, "").length < 10) return setErr("WhatsApp inválido.");
-    if (isGuest && !convidadoPor.trim()) return setErr("Informe quem te convidou.");
-    if (convidadoNome.trim() && convidadoNome.trim().split(/\s+/).length < 2)
-      return setErr("Informe nome e sobrenome do seu convidado.");
-    if (convidadoPhone && convidadoPhone.replace(/\D/g, "").length < 10)
-      return setErr("WhatsApp do convidado inválido.");
+
+    let invalid: string | null;
+    if (isGuest) {
+      invalid =
+        validatePerson(eu, "") ?? (convidadoPor.trim() ? null : "Informe quem te convidou.");
+    } else if (nome.trim().split(/\s+/).length < 2) {
+      invalid = "Informe seu nome e sobrenome.";
+    } else {
+      invalid = semConvidado ? null : validatePerson(convidado, " do convidado");
+    }
+    if (invalid) return setErr(invalid);
 
     setErr("");
     setLoading(true);
 
-    const payload = {
+    const base = {
       evento: EVENT.name,
       data_evento: EVENT.dateShort,
-      tipo: isGuest ? "convidado" : "cliente",
-      nome: nome.trim(),
-      whatsapp: phone.replace(/\D/g, ""),
-      especialidade: especialidade.trim(),
-      convidado_nome: convidadoNome.trim(),
-      convidado_whatsapp: convidadoPhone.replace(/\D/g, ""),
-      convidado_por: convidadoPor.trim(),
       ref: ref ?? "",
       data_confirmacao: new Date().toISOString(),
     };
+    const guestData = personPayload(convidado);
+    const payload = isGuest
+      ? { ...base, tipo: "convidado", ...personPayload(eu), convidado_por: convidadoPor.trim() }
+      : {
+          ...base,
+          tipo: "cliente",
+          nome: nome.trim(),
+          tem_convidado: !semConvidado,
+          ...(semConvidado
+            ? {}
+            : {
+                convidado_nome: guestData.nome,
+                convidado_instagram: guestData.instagram,
+                convidado_whatsapp: guestData.whatsapp,
+              }),
+        };
 
     try {
       if (RSVP_WEBHOOK_URL) {
@@ -402,6 +518,12 @@ function Evento() {
       setLoading(false);
     }
   };
+
+  const confirmedNames = isGuest
+    ? eu.nome.trim()
+    : semConvidado
+      ? nome.trim()
+      : `${nome.trim()} e ${convidado.nome.trim()}`;
 
   const ready = intro !== "show";
 
@@ -561,6 +683,32 @@ function Evento() {
         </div>
       </section>
 
+      {/* LOCAL */}
+      {VENUE_PHOTO && (
+        <section className="lx-sec">
+          <div className="lx-wrap">
+            <Reveal>
+              <div style={{ textAlign: "center" }}>
+                <span className="lx-eyebrow both">O local</span>
+                <h2 className="lx-h2">
+                  Uma mesa posta para <em className="lx-gold">poucos</em>
+                </h2>
+                <p className="lx-p" style={{ margin: "18px auto 0" }}>
+                  Poucos lugares e conversas de verdade, num ambiente pensado para isso.
+                </p>
+              </div>
+              <figure className="lx-venue" style={{ marginInline: 0 }}>
+                <img src={VENUE_PHOTO} alt={`${EVENT.venueName}, local do evento`} loading="lazy" />
+                <figcaption>
+                  <small>{EVENT.city}</small>
+                  <b>{EVENT.venueName}</b>
+                </figcaption>
+              </figure>
+            </Reveal>
+          </div>
+        </section>
+      )}
+
       {/* CONFIRMAÇÃO */}
       <section id="confirmar" className="lx-sec" style={{ scrollMarginTop: 20 }}>
         <div className="lx-wrap" style={{ maxWidth: 720 }}>
@@ -573,9 +721,8 @@ function Evento() {
                     Seu lugar está <em className="lx-gold">reservado</em>
                   </h2>
                   <p className="lx-p" style={{ margin: "24px auto 0" }}>
-                    {nome.trim()}
-                    {convidadoNome.trim() ? ` e ${convidadoNome.trim()}` : ""}, nos vemos na{" "}
-                    {EVENT.weekday.toLowerCase()}, {EVENT.dateLabel}, às {EVENT.timeLabel}.
+                    {confirmedNames}, nos vemos na {EVENT.weekday.toLowerCase()}, {EVENT.dateLabel},
+                    às {EVENT.timeLabel}.
                   </p>
                   <a
                     href={calendarUrl()}
@@ -597,32 +744,13 @@ function Evento() {
                     <p className="lx-p" style={{ margin: "18px auto 0" }}>
                       {isGuest
                         ? "Você foi convidado(a) para esta noite. Confirme seus dados para garantir o seu lugar."
-                        : "Confirme o seu nome e o de quem vai com você. Leva menos de um minuto."}
+                        : "Confirme a sua presença e informe os dados de quem vai com você."}
                     </p>
                   </div>
 
-                  <label className="lx-field">
-                    <span>Seu nome</span>
-                    <input
-                      placeholder="Nome e sobrenome"
-                      autoComplete="name"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                    />
-                  </label>
-                  <label className="lx-field">
-                    <span>Seu WhatsApp</span>
-                    <input
-                      placeholder="(00) 00000-0000"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(maskPhone(e.target.value))}
-                    />
-                  </label>
-
                   {isGuest ? (
                     <>
+                      <PersonFields own value={eu} onChange={setEu} />
                       <label className="lx-field">
                         <span>Quem te convidou</span>
                         <input
@@ -631,35 +759,33 @@ function Evento() {
                           onChange={(e) => setConvidadoPor(e.target.value)}
                         />
                       </label>
-                      <label className="lx-field">
-                        <span>Sua especialidade</span>
-                        <input
-                          placeholder="Ex.: Dentista, Dermatologista..."
-                          value={especialidade}
-                          onChange={(e) => setEspecialidade(e.target.value)}
-                        />
-                      </label>
                     </>
                   ) : (
-                    <div className="lx-guest">
+                    <>
                       <label className="lx-field">
-                        <span>Nome do seu convidado(a)</span>
+                        <span>Seu nome</span>
                         <input
-                          placeholder="Nome e sobrenome (deixe em branco se for sozinho)"
-                          value={convidadoNome}
-                          onChange={(e) => setConvidadoNome(e.target.value)}
+                          placeholder="Nome e sobrenome"
+                          autoComplete="name"
+                          value={nome}
+                          onChange={(e) => setNome(e.target.value)}
                         />
                       </label>
-                      <label className="lx-field">
-                        <span>WhatsApp do convidado (opcional)</span>
-                        <input
-                          placeholder="(00) 00000-0000"
-                          inputMode="tel"
-                          value={convidadoPhone}
-                          onChange={(e) => setConvidadoPhone(maskPhone(e.target.value))}
-                        />
-                      </label>
-                    </div>
+                      <div className="lx-guest">
+                        <p className="lx-guest-title">Seu convidado(a)</p>
+                        {!semConvidado && (
+                          <PersonFields value={convidado} onChange={setConvidado} />
+                        )}
+                        <label className="lx-check">
+                          <input
+                            type="checkbox"
+                            checked={semConvidado}
+                            onChange={(e) => setSemConvidado(e.target.checked)}
+                          />
+                          <span>Irei sem convidado(a)</span>
+                        </label>
+                      </div>
+                    </>
                   )}
 
                   {err && (
