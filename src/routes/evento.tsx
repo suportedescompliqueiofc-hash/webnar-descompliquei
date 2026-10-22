@@ -305,7 +305,8 @@ const CSS = `
 /* ---------------------------- componentes ---------------------------- */
 
 // ===== SOM: início (sem arquivos de áudio; tudo é sintetizado pelo navegador) =====
-// Estética: sopros de ar e batidas graves e suaves. Sem tom agudo, sem brilho.
+// Estética: sopros de ar e batidas graves e macias. Sem tom agudo, sem brilho.
+// O grave carrega harmônicos (2x e 3x a frequência) para continuar audível em alto-falante de celular.
 // O navegador só libera áudio depois de um toque, por isso a abertura exige o toque em "Entrar".
 type Whoosh = {
   dur: number;
@@ -317,14 +318,14 @@ type Whoosh = {
   attack: number;
 };
 
-// Um "ush": ruído suavizado passando por um filtro que abre e fecha.
+// Um "ush" grave: ruído suavizado passando por um filtro que abre e fecha.
 function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
   const length = Math.ceil(ctx.sampleRate * (o.dur + 0.3));
   const noise = ctx.createBuffer(1, length, ctx.sampleRate);
   const data = noise.getChannelData(0);
   let smooth = 0;
   for (let i = 0; i < length; i++) {
-    smooth += (Math.random() * 2 - 1 - smooth) * 0.35; // suaviza o chiado agudo
+    smooth += (Math.random() * 2 - 1 - smooth) * 0.25; // suaviza o chiado agudo
     data[i] = smooth;
   }
   const src = ctx.createBufferSource();
@@ -332,7 +333,7 @@ function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
 
   const band = ctx.createBiquadFilter();
   band.type = "bandpass";
-  band.Q.value = 0.7;
+  band.Q.value = 0.8;
   band.frequency.setValueAtTime(o.from, t0);
   band.frequency.exponentialRampToValueAtTime(o.peak, t0 + o.attack + 0.1);
   band.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
@@ -340,7 +341,7 @@ function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
   const soft = ctx.createBiquadFilter();
   soft.type = "lowpass";
   soft.frequency.value = o.ceiling;
-  soft.Q.value = 0.4;
+  soft.Q.value = 0.5;
 
   const env = ctx.createGain();
   env.gain.setValueAtTime(0.0001, t0);
@@ -355,6 +356,37 @@ function whoosh(ctx: BaseAudioContext, out: AudioNode, t0: number, o: Whoosh) {
   src.stop(t0 + o.dur + 0.1);
 }
 
+// Uma onda grave que sobe e desce devagar (o "corpo" do som de entrada).
+function swell(
+  ctx: BaseAudioContext,
+  out: AudioNode,
+  t0: number,
+  o: { from: number; peak: number; to: number; dur: number; attack: number; gain: number },
+) {
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t0);
+  env.gain.exponentialRampToValueAtTime(o.gain, t0 + o.attack);
+  env.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+  env.connect(out);
+  [
+    [1, 1],
+    [2, 0.8],
+    [3, 0.4],
+  ].forEach(([mult, amp]) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(o.from * mult, t0);
+    osc.frequency.exponentialRampToValueAtTime(o.peak * mult, t0 + o.attack);
+    osc.frequency.exponentialRampToValueAtTime(o.to * mult, t0 + o.dur);
+    const g = ctx.createGain();
+    g.gain.value = amp;
+    osc.connect(g);
+    g.connect(env);
+    osc.start(t0);
+    osc.stop(t0 + o.dur + 0.05);
+  });
+}
+
 // Uma batida grave e curta, como um toque macio numa superfície.
 function pop(
   ctx: BaseAudioContext,
@@ -362,30 +394,40 @@ function pop(
   t0: number,
   o: { from: number; to: number; dur: number; gain: number },
 ) {
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(o.from, t0);
-  osc.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(o.gain, t0 + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
-  osc.connect(gain);
-  gain.connect(out);
-  osc.start(t0);
-  osc.stop(t0 + o.dur + 0.05);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t0);
+  env.gain.exponentialRampToValueAtTime(o.gain, t0 + 0.012);
+  env.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+  env.connect(out);
+  [
+    [1, 1],
+    [2, 0.75],
+  ].forEach(([mult, amp]) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(o.from * mult, t0);
+    osc.frequency.exponentialRampToValueAtTime(o.to * mult, t0 + o.dur);
+    const g = ctx.createGain();
+    g.gain.value = amp;
+    osc.connect(g);
+    g.connect(env);
+    osc.start(t0);
+    osc.stop(t0 + o.dur + 0.05);
+  });
 }
 
+// Som de entrada: um "whoom" grave com o sopro de ar por cima.
 function scheduleEntrance(ctx: BaseAudioContext, out: AudioNode, t0: number) {
   whoosh(ctx, out, t0, {
-    dur: 1.7,
-    from: 260,
-    peak: 1100,
-    to: 380,
-    ceiling: 1800,
-    gain: 0.9,
-    attack: 0.5,
+    dur: 2,
+    from: 110,
+    peak: 380,
+    to: 150,
+    ceiling: 700,
+    gain: 1.1,
+    attack: 0.6,
   });
+  swell(ctx, out, t0, { from: 80, peak: 118, to: 72, dur: 2, attack: 0.55, gain: 0.22 });
 }
 
 type UiSound = "reveal" | "tap" | "focus" | "error" | "success";
@@ -393,8 +435,19 @@ let audio: { ctx: AudioContext; master: GainNode } | null = null;
 let soundOn = true;
 let lastSoftAt = 0;
 
+// 0,12 s de silêncio: no iPhone, tocar um <audio> libera o som mesmo com o modo silencioso ligado.
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRqQHAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
 function playEntrance() {
   try {
+    // iPhone/Safari: trata o som como "reprodução de mídia" (não some com o botão de silencioso)
+    const nav = navigator as unknown as { audioSession?: { type: string } };
+    if (nav.audioSession) nav.audioSession.type = "playback";
+    const keepAlive = new Audio(SILENT_WAV);
+    keepAlive.setAttribute("playsinline", "");
+    void keepAlive.play().catch(() => undefined);
+
     const AC =
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -403,7 +456,14 @@ function playEntrance() {
     void ctx.resume();
     const master = ctx.createGain();
     master.gain.value = soundOn ? 1 : 0;
-    master.connect(ctx.destination);
+    // limitador de segurança: nunca estoura, mesmo com vários sons juntos
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -8;
+    limiter.ratio.value = 8;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    master.connect(limiter);
+    limiter.connect(ctx.destination);
     audio = { ctx, master };
     scheduleEntrance(ctx, master, ctx.currentTime + 0.05);
   } catch {
@@ -429,35 +489,35 @@ function playUi(kind: UiSound) {
   switch (kind) {
     case "reveal":
       whoosh(ctx, master, t, {
-        dur: 0.5,
-        from: 240,
-        peak: 620,
-        to: 300,
-        ceiling: 1100,
-        gain: 0.5,
-        attack: 0.18,
+        dur: 0.6,
+        from: 100,
+        peak: 300,
+        to: 130,
+        ceiling: 600,
+        gain: 0.8,
+        attack: 0.2,
       });
       break;
     case "tap":
-      pop(ctx, master, t, { from: 190, to: 85, dur: 0.16, gain: 0.22 });
+      pop(ctx, master, t, { from: 170, to: 80, dur: 0.2, gain: 0.3 });
       break;
     case "focus":
-      pop(ctx, master, t, { from: 420, to: 300, dur: 0.07, gain: 0.07 });
+      pop(ctx, master, t, { from: 240, to: 170, dur: 0.08, gain: 0.1 });
       break;
     case "error":
-      pop(ctx, master, t, { from: 130, to: 70, dur: 0.32, gain: 0.28 });
+      pop(ctx, master, t, { from: 120, to: 62, dur: 0.4, gain: 0.34 });
       break;
     case "success":
       whoosh(ctx, master, t, {
-        dur: 1.1,
-        from: 260,
-        peak: 900,
-        to: 360,
-        ceiling: 1500,
-        gain: 0.8,
-        attack: 0.35,
+        dur: 1.3,
+        from: 110,
+        peak: 340,
+        to: 140,
+        ceiling: 650,
+        gain: 0.9,
+        attack: 0.4,
       });
-      pop(ctx, master, t + 0.1, { from: 150, to: 95, dur: 0.4, gain: 0.22 });
+      pop(ctx, master, t + 0.1, { from: 130, to: 80, dur: 0.5, gain: 0.3 });
       break;
   }
 }

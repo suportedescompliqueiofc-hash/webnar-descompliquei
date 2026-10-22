@@ -179,21 +179,21 @@
   const data = noise.getChannelData(0);
   let smooth = 0;
   for (let i = 0; i < length; i++) {
-    smooth += (Math.random() * 2 - 1 - smooth) * 0.35;
+    smooth += (Math.random() * 2 - 1 - smooth) * 0.25;
     data[i] = smooth;
   }
   const src = ctx.createBufferSource();
   src.buffer = noise;
   const band = ctx.createBiquadFilter();
   band.type = "bandpass";
-  band.Q.value = 0.7;
+  band.Q.value = 0.8;
   band.frequency.setValueAtTime(o.from, t0);
   band.frequency.exponentialRampToValueAtTime(o.peak, t0 + o.attack + 0.1);
   band.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
   const soft = ctx.createBiquadFilter();
   soft.type = "lowpass";
   soft.frequency.value = o.ceiling;
-  soft.Q.value = 0.4;
+  soft.Q.value = 0.5;
   const env = ctx.createGain();
   env.gain.setValueAtTime(1e-4, t0);
   env.gain.exponentialRampToValueAtTime(o.gain, t0 + o.attack);
@@ -205,43 +205,88 @@
   src.start(t0);
   src.stop(t0 + o.dur + 0.1);
 }
+function swell(ctx, out, t0, o) {
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(1e-4, t0);
+  env.gain.exponentialRampToValueAtTime(o.gain, t0 + o.attack);
+  env.gain.exponentialRampToValueAtTime(1e-4, t0 + o.dur);
+  env.connect(out);
+  [
+    [1, 1],
+    [2, 0.8],
+    [3, 0.4]
+  ].forEach(([mult, amp]) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(o.from * mult, t0);
+    osc.frequency.exponentialRampToValueAtTime(o.peak * mult, t0 + o.attack);
+    osc.frequency.exponentialRampToValueAtTime(o.to * mult, t0 + o.dur);
+    const g = ctx.createGain();
+    g.gain.value = amp;
+    osc.connect(g);
+    g.connect(env);
+    osc.start(t0);
+    osc.stop(t0 + o.dur + 0.05);
+  });
+}
 function pop(ctx, out, t0, o) {
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(o.from, t0);
-  osc.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(1e-4, t0);
-  gain.gain.exponentialRampToValueAtTime(o.gain, t0 + 0.012);
-  gain.gain.exponentialRampToValueAtTime(1e-4, t0 + o.dur);
-  osc.connect(gain);
-  gain.connect(out);
-  osc.start(t0);
-  osc.stop(t0 + o.dur + 0.05);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(1e-4, t0);
+  env.gain.exponentialRampToValueAtTime(o.gain, t0 + 0.012);
+  env.gain.exponentialRampToValueAtTime(1e-4, t0 + o.dur);
+  env.connect(out);
+  [
+    [1, 1],
+    [2, 0.75]
+  ].forEach(([mult, amp]) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(o.from * mult, t0);
+    osc.frequency.exponentialRampToValueAtTime(o.to * mult, t0 + o.dur);
+    const g = ctx.createGain();
+    g.gain.value = amp;
+    osc.connect(g);
+    g.connect(env);
+    osc.start(t0);
+    osc.stop(t0 + o.dur + 0.05);
+  });
 }
 function scheduleEntrance(ctx, out, t0) {
   whoosh(ctx, out, t0, {
-    dur: 1.7,
-    from: 260,
-    peak: 1100,
-    to: 380,
-    ceiling: 1800,
-    gain: 0.9,
-    attack: 0.5
+    dur: 2,
+    from: 110,
+    peak: 380,
+    to: 150,
+    ceiling: 700,
+    gain: 1.1,
+    attack: 0.6
   });
+  swell(ctx, out, t0, { from: 80, peak: 118, to: 72, dur: 2, attack: 0.55, gain: 0.22 });
 }
 let audio = null;
 let soundOn = true;
 let lastSoftAt = 0;
+const SILENT_WAV = "data:audio/wav;base64,UklGRqQHAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 function playEntrance() {
   try {
+    const nav = navigator;
+    if (nav.audioSession) nav.audioSession.type = "playback";
+    const keepAlive = new Audio(SILENT_WAV);
+    keepAlive.setAttribute("playsinline", "");
+    void keepAlive.play().catch(() => void 0);
     const AC = window.AudioContext ?? window.webkitAudioContext;
     if (!AC) return;
     const ctx = new AC();
     void ctx.resume();
     const master = ctx.createGain();
     master.gain.value = soundOn ? 1 : 0;
-    master.connect(ctx.destination);
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -8;
+    limiter.ratio.value = 8;
+    limiter.attack.value = 3e-3;
+    limiter.release.value = 0.25;
+    master.connect(limiter);
+    limiter.connect(ctx.destination);
     audio = { ctx, master };
     scheduleEntrance(ctx, master, ctx.currentTime + 0.05);
   } catch {
@@ -263,35 +308,35 @@ function playUi(kind) {
   switch (kind) {
     case "reveal":
       whoosh(ctx, master, t, {
-        dur: 0.5,
-        from: 240,
-        peak: 620,
-        to: 300,
-        ceiling: 1100,
-        gain: 0.5,
-        attack: 0.18
+        dur: 0.6,
+        from: 100,
+        peak: 300,
+        to: 130,
+        ceiling: 600,
+        gain: 0.8,
+        attack: 0.2
       });
       break;
     case "tap":
-      pop(ctx, master, t, { from: 190, to: 85, dur: 0.16, gain: 0.22 });
+      pop(ctx, master, t, { from: 170, to: 80, dur: 0.2, gain: 0.3 });
       break;
     case "focus":
-      pop(ctx, master, t, { from: 420, to: 300, dur: 0.07, gain: 0.07 });
+      pop(ctx, master, t, { from: 240, to: 170, dur: 0.08, gain: 0.1 });
       break;
     case "error":
-      pop(ctx, master, t, { from: 130, to: 70, dur: 0.32, gain: 0.28 });
+      pop(ctx, master, t, { from: 120, to: 62, dur: 0.4, gain: 0.34 });
       break;
     case "success":
       whoosh(ctx, master, t, {
-        dur: 1.1,
-        from: 260,
-        peak: 900,
-        to: 360,
-        ceiling: 1500,
-        gain: 0.8,
-        attack: 0.35
+        dur: 1.3,
+        from: 110,
+        peak: 340,
+        to: 140,
+        ceiling: 650,
+        gain: 0.9,
+        attack: 0.4
       });
-      pop(ctx, master, t + 0.1, { from: 150, to: 95, dur: 0.4, gain: 0.22 });
+      pop(ctx, master, t + 0.1, { from: 130, to: 80, dur: 0.5, gain: 0.3 });
       break;
   }
 }
