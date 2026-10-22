@@ -7,6 +7,10 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import carollinaBorgesImg from "@/assets/evento/carollina-borges.jpg";
+import carollinaMoncaoImg from "@/assets/evento/carollina-moncao.jpg";
+import tayaneImg from "@/assets/evento/tayane.jpg";
+import derekImg from "@/assets/evento/derek.jpg";
 
 /* -------------------------------------------------------------------------- */
 /*  CONFIGURAÇÃO DO EVENTO — tudo que muda fica aqui, nada espalhado na página */
@@ -41,10 +45,10 @@ const EVENT = {
 
 // Os Big Cases. Preencha role (especialidade) e photo (import de src/assets) quando tiver.
 const CASES: { numeral: string; name: string; role?: string; photo?: string }[] = [
-  { numeral: "I", name: "Dra. Carollina Borges" },
-  { numeral: "II", name: "Dra. Carollina Monção" },
-  { numeral: "III", name: "Dra. Tayane Nascimento" },
-  { numeral: "IV", name: "Dr. Derek Gonçalves" },
+  { numeral: "I", name: "Dra. Carollina Borges", photo: carollinaBorgesImg },
+  { numeral: "II", name: "Dra. Carollina Monção", photo: carollinaMoncaoImg },
+  { numeral: "III", name: "Dra. Tayane Nascimento", photo: tayaneImg },
+  { numeral: "IV", name: "Dr. Derek Gonçalves", photo: derekImg },
 ];
 
 const PROGRAMA = [
@@ -203,8 +207,13 @@ const CSS = `
 .lx-case{text-align:center}
 .lx-arch{position:relative;aspect-ratio:3/4;border-radius:999px 999px 6px 6px;overflow:hidden;
   border:1px solid var(--line);background:radial-gradient(90% 70% at 50% 25%,#1c1913,#0b0a08 70%)}
-.lx-arch::after{content:"";position:absolute;inset:9px;border-radius:999px 999px 2px 2px;border:1px solid rgba(200,169,106,.12);pointer-events:none}
-.lx-arch img{width:100%;height:100%;object-fit:cover;filter:grayscale(.2)}
+.lx-arch::after{content:"";position:absolute;inset:9px;border-radius:999px 999px 2px 2px;border:1px solid rgba(200,169,106,.25);pointer-events:none;z-index:2}
+.lx-arch img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;
+  filter:saturate(.78) contrast(1.06) brightness(.88) sepia(.18);
+  transition:filter .9s ease,transform 1.4s cubic-bezier(.2,.7,.2,1)}
+.lx-arch.has-photo::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(200,169,106,.12),transparent 38%,rgba(7,7,7,.88) 100%)}
+.lx-case:hover .lx-arch img{filter:saturate(.95) contrast(1.04) brightness(.97) sepia(.06);transform:scale(1.035)}
 .lx-arch svg{position:absolute;left:50%;bottom:0;width:62%;transform:translateX(-50%);fill:rgba(200,169,106,.13)}
 .lx-arch .num{position:absolute;top:19%;left:0;right:0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(40px,11vw,64px);color:rgba(239,223,178,.55)}
 .lx-case small{display:block;margin-top:22px;font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold)}
@@ -639,7 +648,7 @@ function Evento() {
             {CASES.map((cs, i) => (
               <Reveal key={cs.numeral} delay={i * 140}>
                 <div className="lx-case">
-                  <div className="lx-arch">
+                  <div className={`lx-arch ${cs.photo ? "has-photo" : ""}`}>
                     {cs.photo ? (
                       <img src={cs.photo} alt={cs.name} />
                     ) : (
