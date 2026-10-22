@@ -42,8 +42,8 @@
 
 **Verso**
 
-> Dentro deste envelope há um segundo convite. Ele é para alguém da sua área
-> que você gostaria de ter ao seu lado nessa noite.
+> Dentro deste envelope há um segundo convite. Ele é para um profissional da
+> sua área que você gostaria de ter ao seu lado nessa noite.
 
 ---
 

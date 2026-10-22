@@ -156,6 +156,9 @@ const CSS = `
 .lx-intro-line.b{background:linear-gradient(transparent,var(--gold));transform-origin:bottom}
 .lx-intro-mark{display:flex;gap:.34em;font-size:clamp(34px,9vw,60px);font-weight:300;letter-spacing:.1em;color:var(--gold-hi)}
 .lx-intro-mark span{opacity:0;animation:lxLetter 1s cubic-bezier(.2,.7,.2,1) both}
+.lx-intro-actions{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:14px;opacity:0;animation:lxFade 1.2s 2.5s ease both}
+.lx-intro-mute{background:none;border:0;padding:6px;cursor:pointer;font:400 11px 'Jost',sans-serif;letter-spacing:.32em;text-transform:uppercase;color:var(--mut);text-decoration:underline;text-decoration-color:rgba(200,169,106,.5);text-underline-offset:7px;transition:color .3s}
+.lx-intro-mute:hover{color:var(--gold-hi)}
 .lx-intro-sub{margin:0;font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--mut);opacity:0;animation:lxFade 1s 1.5s ease both}
 
 /* hero */
@@ -240,11 +243,8 @@ const CSS = `
 .lx-guest{margin-top:34px;padding-top:6px;border-top:1px solid var(--line)}
 .lx-err{margin:20px 0 0;color:#e58b7a;font-size:14px}
 .lx-row{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.lx-guest-note{margin:10px 0 0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .lx-guest-title{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-style:italic;color:var(--gold-hi)}
-.lx-check{display:flex;align-items:center;gap:12px;margin-top:26px;cursor:pointer;font-size:14px;color:var(--mut)}
-.lx-check input{appearance:none;-webkit-appearance:none;width:17px;height:17px;margin:0;border:1px solid var(--gold);background:transparent;cursor:pointer;transition:background .3s}
-.lx-check input:checked{background:linear-gradient(135deg,#b8934f,#f1e1b6)}
-.lx-check input:focus-visible{outline:1px solid var(--gold-hi);outline-offset:3px}
 
 /* local */
 .lx-venue{position:relative;margin-top:44px;border:1px solid var(--line);padding:9px}
@@ -254,6 +254,14 @@ const CSS = `
 .lx-venue figcaption{position:absolute;z-index:1;left:30px;bottom:26px;right:30px;display:flex;flex-direction:column;gap:4px}
 .lx-venue figcaption b{font:italic 400 clamp(24px,4vw,34px) 'Cormorant Garamond',Georgia,serif}
 .lx-venue figcaption small{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
+
+/* mapa */
+.lx-map{max-width:520px;height:220px;margin:26px auto 0;padding:6px;border:1px solid var(--line);background:#0c0c0c}
+.lx-map iframe{display:block;width:100%;height:100%;border:0;
+  filter:grayscale(1) invert(.92) contrast(.92) sepia(.4) brightness(.95)}
+.lx-maplink{display:inline-block;margin-top:18px;padding-bottom:6px;border-bottom:1px solid var(--gold);
+  font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-hi);text-decoration:none;transition:color .3s}
+.lx-maplink:hover{color:#fff}
 
 /* revelar ao rolar */
 .lx-rv{opacity:0;transform:translateY(30px);filter:blur(6px);
@@ -424,6 +432,71 @@ function PersonFields({
   );
 }
 
+// Som de entrada sintetizado (sem arquivo de áudio): sinos suaves sobre um pad quente.
+// O navegador só libera áudio depois de um toque do usuário, por isso a abertura pede esse toque.
+function scheduleEntrance(ctx: BaseAudioContext, out: AudioNode, t0: number) {
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.9, t0 + 0.4);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 6.5);
+  master.connect(out);
+
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = 900;
+  lowpass.connect(master);
+  [110, 164.81, 220].forEach((freq, i) => {
+    [-4, 4].forEach((cents) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = freq;
+      osc.detune.value = cents;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.045 - i * 0.008;
+      osc.connect(gain);
+      gain.connect(lowpass);
+      osc.start(t0);
+      osc.stop(t0 + 6.6);
+    });
+  });
+
+  [880, 1318.51, 1760].forEach((freq, i) => {
+    const start = t0 + 0.35 + i * 0.22;
+    [
+      [1, 1],
+      [2.76, 0.32],
+      [5.4, 0.12],
+    ].forEach(([ratio, amp]) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq * ratio;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.22 * amp, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 3.2);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(start);
+      osc.stop(start + 3.3);
+    });
+  });
+}
+
+function playEntrance() {
+  try {
+    const AC =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    void ctx.resume();
+    scheduleEntrance(ctx, ctx.destination, ctx.currentTime + 0.05);
+    window.setTimeout(() => void ctx.close(), 7500);
+  } catch {
+    // sem áudio disponível: segue em silêncio
+  }
+}
+
 type IntroState = "show" | "leaving" | "gone";
 
 function Evento() {
@@ -434,24 +507,14 @@ function Evento() {
   const [nome, setNome] = useState("");
   const [eu, setEu] = useState<Person>(EMPTY_PERSON);
   const [convidado, setConvidado] = useState<Person>(EMPTY_PERSON);
-  const [semConvidado, setSemConvidado] = useState(false);
   const [convidadoPor, setConvidadoPor] = useState(ref ? prettifyRef(ref) : "");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
-  // Abertura animada: ~3s, pode ser pulada com um toque.
+  // Abertura: com "reduzir movimento" ativado ela é pulada; senão espera o toque em "Entrar".
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setIntro("gone");
-      return;
-    }
-    const t1 = window.setTimeout(() => setIntro("leaving"), 3000);
-    const t2 = window.setTimeout(() => setIntro("gone"), 4100);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setIntro("gone");
   }, []);
 
   // Trava a rolagem enquanto a abertura está na tela.
@@ -462,8 +525,9 @@ function Evento() {
     };
   }, [intro]);
 
-  const skipIntro = () => {
+  const enter = (withSound: boolean) => {
     if (intro !== "show") return;
+    if (withSound) playEntrance();
     setIntro("leaving");
     window.setTimeout(() => setIntro("gone"), 1100);
   };
@@ -478,7 +542,7 @@ function Evento() {
     } else if (nome.trim().split(/\s+/).length < 2) {
       invalid = "Informe seu nome e sobrenome.";
     } else {
-      invalid = semConvidado ? null : validatePerson(convidado, " do convidado");
+      invalid = validatePerson(convidado, " do convidado");
     }
     if (invalid) return setErr(invalid);
 
@@ -498,14 +562,9 @@ function Evento() {
           ...base,
           tipo: "cliente",
           nome: nome.trim(),
-          tem_convidado: !semConvidado,
-          ...(semConvidado
-            ? {}
-            : {
-                convidado_nome: guestData.nome,
-                convidado_instagram: guestData.instagram,
-                convidado_whatsapp: guestData.whatsapp,
-              }),
+          convidado_nome: guestData.nome,
+          convidado_instagram: guestData.instagram,
+          convidado_whatsapp: guestData.whatsapp,
         };
 
     try {
@@ -530,11 +589,7 @@ function Evento() {
     }
   };
 
-  const confirmedNames = isGuest
-    ? eu.nome.trim()
-    : semConvidado
-      ? nome.trim()
-      : `${nome.trim()} e ${convidado.nome.trim()}`;
+  const confirmedNames = isGuest ? eu.nome.trim() : `${nome.trim()} e ${convidado.nome.trim()}`;
 
   const ready = intro !== "show";
 
@@ -543,11 +598,7 @@ function Evento() {
       <style>{CSS}</style>
 
       {intro !== "gone" && (
-        <div
-          className={`lx-intro ${intro === "leaving" ? "is-leaving" : ""}`}
-          onClick={skipIntro}
-          role="presentation"
-        >
+        <div className={`lx-intro ${intro === "leaving" ? "is-leaving" : ""}`}>
           <div className="lx-intro-inner">
             <span className="lx-intro-line" />
             <div className="lx-intro-mark lx-serif" aria-label={EVENT.brand}>
@@ -561,6 +612,26 @@ function Evento() {
                 ))}
             </div>
             <p className="lx-intro-sub">Convite exclusivo</p>
+            <div className="lx-intro-actions">
+              <button type="button" className="lx-btn solid" onClick={() => enter(true)}>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  aria-hidden="true"
+                >
+                  <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+                  <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" strokeLinecap="round" />
+                </svg>
+                Entrar com som
+              </button>
+              <button type="button" className="lx-intro-mute" onClick={() => enter(false)}>
+                Entrar sem som
+              </button>
+            </div>
             <span className="lx-intro-line b" />
           </div>
         </div>
@@ -755,7 +826,7 @@ function Evento() {
                     <p className="lx-p" style={{ margin: "18px auto 0" }}>
                       {isGuest
                         ? "Você foi convidado(a) para esta noite. Confirme seus dados para garantir o seu lugar."
-                        : "Confirme a sua presença e informe os dados de quem vai com você."}
+                        : "Confirme a sua presença e informe os dados do seu convidado, que precisa ser um profissional da sua área."}
                     </p>
                   </div>
 
@@ -784,17 +855,10 @@ function Evento() {
                       </label>
                       <div className="lx-guest">
                         <p className="lx-guest-title">Seu convidado(a)</p>
-                        {!semConvidado && (
-                          <PersonFields value={convidado} onChange={setConvidado} />
-                        )}
-                        <label className="lx-check">
-                          <input
-                            type="checkbox"
-                            checked={semConvidado}
-                            onChange={(e) => setSemConvidado(e.target.checked)}
-                          />
-                          <span>Irei sem convidado(a)</span>
-                        </label>
+                        <p className="lx-guest-note">
+                          Obrigatório · precisa ser um profissional da sua área
+                        </p>
+                        <PersonFields value={convidado} onChange={setConvidado} />
                       </div>
                     </>
                   )}
@@ -834,6 +898,25 @@ function Evento() {
               <br />
               {EVENT.venueAddress}
             </p>
+            <div className="lx-map">
+              <iframe
+                title={`Mapa: ${EVENT.venueName}`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(EVENT.venueAddress)}&output=embed`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <a
+                className="lx-maplink"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(EVENT.venueAddress)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir no Google Maps
+              </a>
+            </div>
           </Reveal>
         </div>
       </section>
