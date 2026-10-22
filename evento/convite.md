@@ -25,7 +25,7 @@
 **Interior**
 
 > Na noite de **30 de novembro**, a Altta reúne um grupo fechado de profissionais
-> para ouvir **3 grandes cases** de quem já percorreu o caminho, e conhecer as
+> para ouvir **4 grandes cases** de quem já percorreu o caminho, e conhecer as
 > **tendências** que vão definir os próximos anos do seu consultório.
 >
 > Uma noite para aprender, trocar com quem está no mesmo nível e conhecer gente
@@ -56,7 +56,7 @@
 **Interior**
 
 > {{NOME_DO_DOUTOR}} indicou você para uma noite fechada, organizada pela Altta,
-> com **3 grandes cases** e um conteúdo sobre as **tendências** que estão
+> com **4 grandes cases** e um conteúdo sobre as **tendências** que estão
 > mudando o consultório.
 >
 > **{{NOME_DO_EVENTO}}**

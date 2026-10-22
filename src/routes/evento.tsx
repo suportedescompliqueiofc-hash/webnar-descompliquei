@@ -39,18 +39,18 @@ const EVENT = {
   calendarEnd: "20261130T213000",
 };
 
-// Os 3 cases. Preencha name/role/photo quando quiser revelar quem são.
-// Enquanto vazio, a página mostra "nome revelado aos confirmados".
-const CASES: { numeral: string; teaser: string; name?: string; role?: string; photo?: string }[] = [
-  { numeral: "I", teaser: "O caminho até o primeiro milhão." },
-  { numeral: "II", teaser: "Os bastidores que ninguém conta." },
-  { numeral: "III", teaser: "O que fazer diferente desde o primeiro dia." },
+// Os Big Cases. Preencha role (especialidade) e photo (import de src/assets) quando tiver.
+const CASES: { numeral: string; name: string; role?: string; photo?: string }[] = [
+  { numeral: "I", name: "Dra. Carollina Borges" },
+  { numeral: "II", name: "Dra. Carollina Monção" },
+  { numeral: "III", name: "Dra. Tayane Nascimento" },
+  { numeral: "IV", name: "Dr. Derek Gonçalves" },
 ];
 
 const PROGRAMA = [
   { title: "Recepção", text: "Boas-vindas e brinde de abertura." },
   { title: "Abertura", text: "O que nos trouxe até aqui." },
-  { title: "Os Big Cases", text: "Três profissionais, três histórias, números reais." },
+  { title: "Os Big Cases", text: "Quatro profissionais, quatro histórias, números reais." },
   { title: "Tendências do mercado", text: "Para onde o mercado caminha e como chegar na frente." },
   { title: "Jantar e networking", text: "Uma mesa com quem está no mesmo patamar." },
 ];
@@ -199,16 +199,16 @@ const CSS = `
 .lx-statement{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;line-height:1.12;text-align:center;
   font-size:clamp(34px,6.6vw,70px);max-width:900px;margin:0 auto}
 .lx-statement em{font-style:italic;font-weight:400}
-.lx-cases{display:grid;gap:44px;margin-top:70px}
-.lx-case{text-align:center;max-width:250px;margin:0 auto}
+.lx-cases{display:grid;grid-template-columns:1fr 1fr;gap:40px 18px;margin-top:70px}
+.lx-case{text-align:center}
 .lx-arch{position:relative;aspect-ratio:3/4;border-radius:999px 999px 6px 6px;overflow:hidden;
   border:1px solid var(--line);background:radial-gradient(90% 70% at 50% 25%,#1c1913,#0b0a08 70%)}
 .lx-arch::after{content:"";position:absolute;inset:9px;border-radius:999px 999px 2px 2px;border:1px solid rgba(200,169,106,.12);pointer-events:none}
 .lx-arch img{width:100%;height:100%;object-fit:cover;filter:grayscale(.2)}
 .lx-arch svg{position:absolute;left:50%;bottom:0;width:62%;transform:translateX(-50%);fill:rgba(200,169,106,.13)}
-.lx-arch .num{position:absolute;top:19%;left:0;right:0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:64px;color:rgba(239,223,178,.55)}
+.lx-arch .num{position:absolute;top:19%;left:0;right:0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(40px,11vw,64px);color:rgba(239,223,178,.55)}
 .lx-case small{display:block;margin-top:22px;font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold)}
-.lx-case h3{margin:8px 0 0;font-family:'Cormorant Garamond',serif;font-weight:400;font-style:italic;font-size:26px}
+.lx-case h3{margin:8px 0 0;font-family:'Cormorant Garamond',serif;font-weight:400;font-style:italic;font-size:clamp(19px,5.4vw,26px);line-height:1.15}
 .lx-case p{margin:8px auto 0;max-width:260px;color:var(--mut);font-size:14.5px;line-height:1.6}
 
 /* programa */
@@ -256,11 +256,14 @@ const CSS = `
   .lx-meta{grid-template-columns:repeat(4,1fr)}
   .lx-meta>div:nth-child(odd){border-left:1px solid var(--line)}
   .lx-meta>div:first-child{border-left:0}
-  .lx-cases{grid-template-columns:repeat(3,1fr);gap:36px}
-  .lx-case{max-width:none}
+
   .lx-sec{padding-top:150px}
   .lx-frame{padding:60px 56px}
   .lx-split{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
+}
+
+@media (min-width:900px){
+  .lx-cases{grid-template-columns:repeat(4,1fr);gap:28px}
 }
 
 @keyframes lxShine{to{background-position:220% center}}
@@ -627,8 +630,8 @@ function Evento() {
         <div className="lx-wrap">
           <Reveal>
             <p className="lx-statement">
-              Três histórias. <em className="lx-gold">Mais de R$ 1 milhão</em> em um único ano. Uma
-              noite para ouvir, de perto, <em>como foi feito.</em>
+              Quatro histórias. <em className="lx-gold">Mais de R$ 1 milhão</em> em um único ano.
+              Uma noite para ouvir, de perto, <em>como foi feito.</em>
             </p>
           </Reveal>
 
@@ -638,7 +641,7 @@ function Evento() {
                 <div className="lx-case">
                   <div className="lx-arch">
                     {cs.photo ? (
-                      <img src={cs.photo} alt={cs.name ?? `Big Case ${cs.numeral}`} />
+                      <img src={cs.photo} alt={cs.name} />
                     ) : (
                       <>
                         <span className="num">{cs.numeral}</span>
@@ -647,8 +650,8 @@ function Evento() {
                     )}
                   </div>
                   <small>Big Case {cs.numeral}</small>
-                  <h3>{cs.name ?? "Nome revelado aos confirmados"}</h3>
-                  <p>{cs.role ?? cs.teaser}</p>
+                  <h3>{cs.name}</h3>
+                  {cs.role && <p>{cs.role}</p>}
                 </div>
               </Reveal>
             ))}
