@@ -216,8 +216,7 @@ const CSS = `
 .lx-case:hover .lx-arch img{filter:saturate(.95) contrast(1.04) brightness(.97) sepia(.06);transform:scale(1.035)}
 .lx-arch svg{position:absolute;left:50%;bottom:0;width:62%;transform:translateX(-50%);fill:rgba(200,169,106,.13)}
 .lx-arch .num{position:absolute;top:19%;left:0;right:0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(40px,11vw,64px);color:rgba(239,223,178,.55)}
-.lx-case small{display:block;margin-top:22px;font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold)}
-.lx-case h3{margin:8px 0 0;font-family:'Cormorant Garamond',serif;font-weight:400;font-style:italic;font-size:clamp(19px,5.4vw,26px);line-height:1.15}
+.lx-case h3{margin:22px 0 0;font-family:'Cormorant Garamond',serif;font-weight:400;font-style:italic;font-size:clamp(19px,5.4vw,26px);line-height:1.15}
 .lx-case p{margin:8px auto 0;max-width:260px;color:var(--mut);font-size:14.5px;line-height:1.6}
 
 /* programa */
@@ -658,7 +657,7 @@ function Evento() {
                       </>
                     )}
                   </div>
-                  <small>Big Case {cs.numeral}</small>
+
                   <h3>{cs.name}</h3>
                   {cs.role && <p>{cs.role}</p>}
                 </div>
