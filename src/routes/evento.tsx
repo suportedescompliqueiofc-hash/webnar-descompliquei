@@ -23,24 +23,25 @@ const EVENT = {
   titleLine1: "Encontro",
   titleLine2: "de Cases",
   name: "Encontro de Cases",
-  day: "30",
-  month: "Nov",
+  day: "07",
+  month: "Dez",
   year: "2026",
-  dateLabel: "30 de novembro",
-  dateShort: "30/11",
+  dateLabel: "7 de dezembro",
+  dateShort: "07/12",
   weekday: "Segunda-feira",
-  // Horário: 18h em ponto (se for 6h da manhã, ajustar aqui e em calendarStart/End)
-  timeLabel: "18h em ponto",
+  // Horário: 18h30 em ponto (ajustar aqui e em calendarStart/End se mudar)
+  timeLabel: "18h30",
+  timeNote: "em ponto",
   city: "Nova Iguaçu",
   // Local: Bauru de Nova Iguaçu
   venueName: "Bauru de Nova Iguaçu",
   venueAddress: "R. Arcelino Pereira Neves, 33 - Centro, Nova Iguaçu - RJ, 26220-010",
   seats: 30,
   // Prazo final de confirmação (para fechar o número com o restaurante)
-  rsvpDeadline: "16/11",
+  rsvpDeadline: "23/11",
   // Início/fim para o botão "Adicionar à agenda" (horário local). TODO: ajustar com o horário real.
-  calendarStart: "20261130T180000",
-  calendarEnd: "20261130T213000",
+  calendarStart: "20261207T183000",
+  calendarEnd: "20261207T220000",
 };
 
 // Os Big Cases. Preencha role (especialidade) e photo (import de src/assets) quando tiver.
@@ -180,6 +181,7 @@ const CSS = `
 .lx-meta>div{padding:0 12px;border-left:1px solid var(--line)}
 .lx-meta>div:nth-child(odd){border-left:0}
 .lx-meta small{display:block;font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.lx-punct{margin:28px 0 0;font:italic 400 18px 'Cormorant Garamond',Georgia,serif;color:var(--gold-hi);opacity:.9}
 .lx-meta span{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:400}
 .lx-scroll{position:absolute;bottom:26px;left:50%;width:1px;height:54px;background:linear-gradient(var(--gold),transparent);
   transform-origin:top;animation:lxPulse 2.4s ease-in-out infinite}
@@ -979,12 +981,15 @@ function Evento() {
             <span>{EVENT.city}</span>
           </div>
         </div>
+        <p className="lx-punct ha" style={{ "--d": "0.9s" } as CSSProperties}>
+          Começamos às {EVENT.timeLabel} {EVENT.timeNote}.
+        </p>
 
         <a
           href="#confirmar"
           onClick={() => playUi("tap")}
           className="lx-btn solid ha"
-          style={{ "--d": "1s", marginTop: 52 } as CSSProperties}
+          style={{ "--d": "1s", marginTop: 34 } as CSSProperties}
         >
           Reservar meu lugar
         </a>
@@ -1105,7 +1110,7 @@ function Evento() {
                   </h2>
                   <p className="lx-p" style={{ margin: "24px auto 0" }}>
                     {confirmedNames}, nos vemos na {EVENT.weekday.toLowerCase()}, {EVENT.dateLabel},
-                    às {EVENT.timeLabel}.
+                    às {EVENT.timeLabel} {EVENT.timeNote}.
                   </p>
                   <a
                     href={calendarUrl()}

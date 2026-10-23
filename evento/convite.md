@@ -1,4 +1,4 @@
-# Convite — Encontro de Cases · 30/11
+# Convite — Encontro de Cases · 07/12
 
 > Texto do convite de papel (entregue no consultório) + mensagens de apoio.
 > Itens entre `{{ }}` ainda precisam ser preenchidos antes de imprimir.
@@ -6,9 +6,9 @@
 | Campo | Valor |
 |---|---|
 | `{{NOME_DO_EVENTO}}` | nome definitivo (provisório na LP: "Encontro de Cases") |
-| `{{HORÁRIO}}` | **18h em ponto** (assumido; se for 6h da manhã, ajustar) |
+| `{{HORÁRIO}}` | **18h30 em ponto** |
 | `{{LOCAL}}` / `{{ENDEREÇO}}` | **Bauru de Nova Iguaçu** · R. Arcelino Pereira Neves, 33 - Centro, Nova Iguaçu - RJ, 26220-010 |
-| `{{PRAZO}}` | 16/11 (sugestão: fecha o número com o restaurante) |
+| `{{PRAZO}}` | 23/11 (sugestão: 2 semanas antes, para fechar o número com o restaurante) |
 | `{{QR_DOUTOR}}` | QR da LP com `?ref=<slug-do-doutor>` |
 | `{{QR_CONVIDADO}}` | QR da LP com `?ref=<slug-do-doutor>&c=1` |
 
@@ -24,7 +24,7 @@
 
 **Interior**
 
-> Na noite de **30 de novembro**, a Altta reúne um grupo fechado de profissionais
+> Na noite de **7 de dezembro**, a Altta reúne um grupo fechado de profissionais
 > para ouvir **4 grandes cases** de quem já percorreu o caminho, e conhecer as
 > **tendências** que vão definir os próximos anos do seu consultório.
 >
@@ -32,7 +32,7 @@
 > que vale a pena ter por perto.
 >
 > **{{NOME_DO_EVENTO}}**
-> Segunda-feira, 30/11 · {{HORÁRIO}}
+> Segunda-feira, 07/12 · {{HORÁRIO}}
 > {{LOCAL}} · {{ENDEREÇO}}
 >
 > Lugares limitados. Confirme sua presença até {{PRAZO}}:
@@ -60,7 +60,7 @@
 > mudando o consultório.
 >
 > **{{NOME_DO_EVENTO}}**
-> Segunda-feira, 30/11 · {{HORÁRIO}}
+> Segunda-feira, 07/12 · {{HORÁRIO}}
 > {{LOCAL}} · {{ENDEREÇO}}
 >
 > Os lugares são poucos. Para garantir o seu, confirme até {{PRAZO}}:
@@ -77,7 +77,7 @@
 
 ---
 
-## 4. Mensagem de aviso antes da entrega (WhatsApp, 3/11)
+## 4. Mensagem de aviso antes da entrega (WhatsApp, 10/11)
 
 > Oi, {{NOME}}! Tudo bem? Amanhã vai chegar uma coisa especial no seu
 > consultório. É um convite para uma noite que estamos preparando com muito
@@ -91,12 +91,12 @@
 
 ## 6. Lembretes
 
-**26/11 (quinta, D-4)**
+**03/12 (quinta, D-4)**
 
 > {{NOME}}, segunda-feira é o nosso encontro! {{HORÁRIO}}, no {{LOCAL}}
 > ({{ENDEREÇO}}). Te esperamos!
 
-**29/11 (domingo, véspera)**
+**06/12 (domingo, véspera)**
 
 > {{NOME}}, é amanhã (segunda)! {{HORÁRIO}} no {{LOCAL}}. Qualquer imprevisto, me avisa
 > por aqui para ajustarmos o seu lugar.
