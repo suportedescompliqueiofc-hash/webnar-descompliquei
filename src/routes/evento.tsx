@@ -116,16 +116,107 @@ function prettifyRef(ref: string) {
   return ref.replace(/[-_]+/g, " ").replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 }
 
+// ===== AGENDA: início =====
+// Fuso do evento: Brasília (UTC-3, sem horário de verão). O .ics usa UTC para abrir certo em qualquer fuso.
+const TZ_OFFSET_HOURS = 3;
+const EVENT_NOTE = "Evento fechado para convidados.";
+
+function eventLocation() {
+  return `${EVENT.venueName}, ${EVENT.venueAddress}`;
+}
+
+// "20261207T183000" (horário de Brasília) -> "20261207T213000Z" (UTC)
+function toUtcStamp(local: string) {
+  const [y, mo, d, h, mi, s] = [
+    local.slice(0, 4),
+    local.slice(4, 6),
+    local.slice(6, 8),
+    local.slice(9, 11),
+    local.slice(11, 13),
+    local.slice(13, 15),
+  ].map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1, d, h + TZ_OFFSET_HOURS, mi, s));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}${pad(dt.getUTCSeconds())}Z`;
+}
+
+// Link do Google Agenda já preenchido (com o fuso, para não mudar de horário em outro lugar)
 function calendarUrl() {
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: `${EVENT.name} — ${EVENT.brand}`,
     dates: `${EVENT.calendarStart}/${EVENT.calendarEnd}`,
-    location: `${EVENT.venueName}, ${EVENT.venueAddress}`,
-    details: "Evento fechado para convidados.",
+    ctz: "America/Sao_Paulo",
+    location: eventLocation(),
+    details: `${EVENT_NOTE} Começamos às ${EVENT.timeLabel} ${EVENT.timeNote}.`,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
+
+// Arquivo .ics: abre direto no Calendário do iPhone/Mac, no Outlook e no Android.
+function buildIcs() {
+  const esc = (t: string) =>
+    t
+      .replace(/\\/g, "\\\\")
+      .replace(/([,;])/g, "\\$1")
+      .replace(/\n/g, "\\n");
+  // linhas longas são "dobradas" em 75 bytes (acentos ocupam mais de um), como manda o padrão
+  const fold = (line: string) => {
+    const enc = new TextEncoder();
+    const parts: string[] = [];
+    let chunk = "";
+    let bytes = 0;
+    for (const ch of line) {
+      const size = enc.encode(ch).length;
+      if (bytes + size > (parts.length === 0 ? 75 : 74)) {
+        parts.push(chunk);
+        chunk = "";
+        bytes = 0;
+      }
+      chunk += ch;
+      bytes += size;
+    }
+    parts.push(chunk);
+    return parts.join("\r\n ");
+  };
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    `PRODID:-//${EVENT.brand}//${EVENT.name}//PT-BR`,
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${EVENT.calendarStart}-${EVENT.brand.toLowerCase()}@evento`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${toUtcStamp(EVENT.calendarStart)}`,
+    `DTEND:${toUtcStamp(EVENT.calendarEnd)}`,
+    `SUMMARY:${esc(`${EVENT.name} — ${EVENT.brand}`)}`,
+    `LOCATION:${esc(eventLocation())}`,
+    `DESCRIPTION:${esc(`${EVENT_NOTE} Começamos às ${EVENT.timeLabel} ${EVENT.timeNote}.`)}`,
+    "BEGIN:VALARM",
+    "TRIGGER:-P1D",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${esc(`Amanhã: ${EVENT.name} (${EVENT.timeLabel} ${EVENT.timeNote})`)}`,
+    "END:VALARM",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT3H",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${esc(`Hoje às ${EVENT.timeLabel}: ${EVENT.name}`)}`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ];
+  return lines.map(fold).join("\r\n") + "\r\n";
+}
+
+function icsHref() {
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(buildIcs())}`;
+}
+// ===== AGENDA: fim =====
 
 /* ------------------------------ estilos ------------------------------ */
 
@@ -260,6 +351,13 @@ const CSS = `
   border-radius:50%;border:1px solid var(--line);background:rgba(10,10,10,.72);color:var(--gold-hi);cursor:pointer;
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .3s,color .3s}
 .lx-sound:hover{border-color:var(--gold);color:#fff}
+
+/* agenda */
+.lx-cal{margin-top:40px}
+.lx-cal-title{margin:0 0 18px;font:italic 400 22px 'Cormorant Garamond',Georgia,serif;color:var(--gold-hi)}
+.lx-cal-row{display:flex;flex-direction:column;align-items:center;gap:12px}
+.lx-cal-row .lx-btn{width:100%;max-width:340px;padding:17px 18px;font-size:11px;letter-spacing:.24em}
+@media (min-width:600px){.lx-cal-row{flex-direction:row;justify-content:center}.lx-cal-row .lx-btn{width:auto;max-width:none;padding:17px 26px}}
 
 /* mapa */
 .lx-map{max-width:520px;height:220px;margin:26px auto 0;padding:6px;border:1px solid var(--line);background:#0c0c0c}
@@ -1112,16 +1210,28 @@ function Evento() {
                     {confirmedNames}, nos vemos na {EVENT.weekday.toLowerCase()}, {EVENT.dateLabel},
                     às {EVENT.timeLabel} {EVENT.timeNote}.
                   </p>
-                  <a
-                    href={calendarUrl()}
-                    onClick={() => playUi("tap")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="lx-btn"
-                    style={{ marginTop: 40 }}
-                  >
-                    Adicionar à agenda
-                  </a>
+                  <div className="lx-cal">
+                    <p className="lx-cal-title">Adicionar à minha agenda</p>
+                    <div className="lx-cal-row">
+                      <a
+                        className="lx-btn"
+                        href={calendarUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => playUi("tap")}
+                      >
+                        Google Agenda
+                      </a>
+                      <a
+                        className="lx-btn"
+                        href={icsHref()}
+                        download="encontro-de-cases-altta.ics"
+                        onClick={() => playUi("tap")}
+                      >
+                        iPhone · Apple · Outlook
+                      </a>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <form

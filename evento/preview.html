@@ -132,6 +132,13 @@
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .3s,color .3s}
 .lx-sound:hover{border-color:var(--gold);color:#fff}
 
+/* agenda */
+.lx-cal{margin-top:40px}
+.lx-cal-title{margin:0 0 18px;font:italic 400 22px 'Cormorant Garamond',Georgia,serif;color:var(--gold-hi)}
+.lx-cal-row{display:flex;flex-direction:column;align-items:center;gap:12px}
+.lx-cal-row .lx-btn{width:100%;max-width:340px;padding:17px 18px;font-size:11px;letter-spacing:.24em}
+@media (min-width:600px){.lx-cal-row{flex-direction:row;justify-content:center}.lx-cal-row .lx-btn{width:auto;max-width:none;padding:17px 26px}}
+
 /* mapa */
 .lx-map{max-width:520px;height:220px;margin:26px auto 0;padding:6px;border:1px solid var(--line);background:#0c0c0c}
 .lx-map iframe{display:block;width:100%;height:100%;border:0;
@@ -425,6 +432,115 @@ function playUi(kind) {
   }
 }
 
+const EVENT = {
+  brand: "Altta",
+  // TODO: nome definitivo do evento (duas linhas no título)
+  titleLine1: "Encontro",
+  titleLine2: "de Cases",
+  name: "Encontro de Cases",
+  day: "07",
+  month: "Dez",
+  year: "2026",
+  dateLabel: "7 de dezembro",
+  dateShort: "07/12",
+  weekday: "Segunda-feira",
+  // Horário: 18h30 em ponto (ajustar aqui e em calendarStart/End se mudar)
+  timeLabel: "18h30",
+  timeNote: "em ponto",
+  city: "Nova Igua\xE7u",
+  // Local: Bauru de Nova Iguaçu
+  venueName: "Bauru de Nova Igua\xE7u",
+  venueAddress: "R. Arcelino Pereira Neves, 33 - Centro, Nova Igua\xE7u - RJ, 26220-010",
+  seats: 30,
+  // Prazo final de confirmação (para fechar o número com o restaurante)
+  rsvpDeadline: "23/11",
+  // Início/fim para o botão "Adicionar à agenda" (horário local). TODO: ajustar com o horário real.
+  calendarStart: "20261207T183000",
+  calendarEnd: "20261207T220000"
+};
+const TZ_OFFSET_HOURS = 3;
+const EVENT_NOTE = "Evento fechado para convidados.";
+function eventLocation() {
+  return `${EVENT.venueName}, ${EVENT.venueAddress}`;
+}
+function toUtcStamp(local) {
+  const [y, mo, d, h, mi, s] = [
+    local.slice(0, 4),
+    local.slice(4, 6),
+    local.slice(6, 8),
+    local.slice(9, 11),
+    local.slice(11, 13),
+    local.slice(13, 15)
+  ].map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1, d, h + TZ_OFFSET_HOURS, mi, s));
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}${pad(dt.getUTCSeconds())}Z`;
+}
+function calendarUrl() {
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${EVENT.name} \u2014 ${EVENT.brand}`,
+    dates: `${EVENT.calendarStart}/${EVENT.calendarEnd}`,
+    ctz: "America/Sao_Paulo",
+    location: eventLocation(),
+    details: `${EVENT_NOTE} Come\xE7amos \xE0s ${EVENT.timeLabel} ${EVENT.timeNote}.`
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+function buildIcs() {
+  const esc = (t) => t.replace(/\\/g, "\\\\").replace(/([,;])/g, "\\$1").replace(/\n/g, "\\n");
+  const fold = (line) => {
+    const enc = new TextEncoder();
+    const parts = [];
+    let chunk = "";
+    let bytes = 0;
+    for (const ch of line) {
+      const size = enc.encode(ch).length;
+      if (bytes + size > (parts.length === 0 ? 75 : 74)) {
+        parts.push(chunk);
+        chunk = "";
+        bytes = 0;
+      }
+      chunk += ch;
+      bytes += size;
+    }
+    parts.push(chunk);
+    return parts.join("\r\n ");
+  };
+  const stamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    `PRODID:-//${EVENT.brand}//${EVENT.name}//PT-BR`,
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${EVENT.calendarStart}-${EVENT.brand.toLowerCase()}@evento`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${toUtcStamp(EVENT.calendarStart)}`,
+    `DTEND:${toUtcStamp(EVENT.calendarEnd)}`,
+    `SUMMARY:${esc(`${EVENT.name} \u2014 ${EVENT.brand}`)}`,
+    `LOCATION:${esc(eventLocation())}`,
+    `DESCRIPTION:${esc(`${EVENT_NOTE} Come\xE7amos \xE0s ${EVENT.timeLabel} ${EVENT.timeNote}.`)}`,
+    "BEGIN:VALARM",
+    "TRIGGER:-P1D",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${esc(`Amanh\xE3: ${EVENT.name} (${EVENT.timeLabel} ${EVENT.timeNote})`)}`,
+    "END:VALARM",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT3H",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${esc(`Hoje \xE0s ${EVENT.timeLabel}: ${EVENT.name}`)}`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ];
+  return lines.map(fold).join("\r\n") + "\r\n";
+}
+function icsHref() {
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(buildIcs())}`;
+}
+
 (function(){
   var root=document.querySelector('.lx'), intro=document.querySelector('.lx-intro');
   function ready(){ root.classList.add('is-ready'); }
@@ -477,9 +593,10 @@ function playUi(kind) {
     if(s.length<2) return showErr('Informe o sobrenome do convidado.');
     if(!/^@?[A-Za-z0-9._]{1,30}$/.test(ig)) return showErr('Informe o @ do Instagram do convidado.');
     if(t.replace(/\D/g,'').length<10) return showErr('Telefone do convidado inválido.');
-    var cal='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Encontro de Cases — Altta')+'&dates=20261207T183000/20261207T220000&location='+encodeURIComponent('Bauru de Nova Iguaçu, R. Arcelino Pereira Neves, 33 - Centro, Nova Iguaçu - RJ, 26220-010');
-    frame.innerHTML='<div style="text-align:center;padding:20px 0"><span class="lx-eyebrow both">Confirmado</span><h2 class="lx-h2">Seu lugar está <em class="lx-gold">reservado</em></h2><p class="lx-p" style="margin:24px auto 0"></p><a class="lx-btn" style="margin-top:40px" target="_blank" rel="noopener noreferrer" href="'+cal+'">Adicionar à agenda</a></div>';
-    frame.querySelector('.lx-p').textContent=nome+' e '+n+', nos vemos na segunda-feira, 7 de dezembro, às 18h30 em ponto.';
+    frame.innerHTML='<div style="text-align:center;padding:20px 0"><span class="lx-eyebrow both">Confirmado</span><h2 class="lx-h2">Seu lugar está <em class="lx-gold">reservado</em></h2><p class="lx-p" style="margin:24px auto 0"></p><div class="lx-cal"><p class="lx-cal-title">Adicionar à minha agenda</p><div class="lx-cal-row"><a class="lx-btn js-g" target="_blank" rel="noopener noreferrer">Google Agenda</a><a class="lx-btn js-ics" download="encontro-de-cases-altta.ics">iPhone · Apple · Outlook</a></div></div></div>';
+    frame.querySelector('.js-g').href=calendarUrl();
+    frame.querySelector('.js-ics').href=icsHref();
+    frame.querySelector('.lx-p').textContent=nome+' e '+n+', nos vemos na '+EVENT.weekday.toLowerCase()+', '+EVENT.dateLabel+', às '+EVENT.timeLabel+' '+EVENT.timeNote+'.';
     playUi('success');
   });
 })();
