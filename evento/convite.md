@@ -9,8 +9,7 @@
 | `{{HORÁRIO}}` | **18h30 em ponto** |
 | `{{LOCAL}}` / `{{ENDEREÇO}}` | **Bauru de Nova Iguaçu** · R. Arcelino Pereira Neves, 33 - Centro, Nova Iguaçu - RJ, 26220-010 |
 | `{{PRAZO}}` | 23/11 (sugestão: 2 semanas antes, para fechar o número com o restaurante) |
-| `{{QR_DOUTOR}}` | QR da LP com `?ref=<slug-do-doutor>` |
-| `{{QR_CONVIDADO}}` | QR da LP com `?ref=<slug-do-doutor>&c=1` |
+| `{{QR}}` | QR da LP com `?ref=<slug-do-doutor>`. **O mesmo QR vai nos dois cartões**: ao abrir, a página pergunta se a pessoa já é cliente da Altta ou foi convidada e mostra o pop-up certo |
 
 ---
 
@@ -25,8 +24,9 @@
 **Interior**
 
 > Na noite de **7 de dezembro**, a Altta reúne um grupo fechado de profissionais
-> para ouvir **4 grandes cases** de quem já percorreu o caminho, e conhecer as
-> **tendências** que vão definir os próximos anos do seu consultório.
+> num nível acima do mercado: gente que **fatura mais de R$ 1 milhão por ano**
+> e vai contar como fez, além das **tendências** que vão definir os próximos
+> anos do seu consultório.
 >
 > Uma noite para aprender, trocar com quem está no mesmo nível e conhecer gente
 > que vale a pena ter por perto.
@@ -56,8 +56,8 @@
 **Interior**
 
 > {{NOME_DO_DOUTOR}} indicou você para uma noite fechada, organizada pela Altta,
-> com **4 grandes cases** e um conteúdo sobre as **tendências** que estão
-> mudando o consultório.
+> com profissionais que **faturam mais de R$ 1 milhão por ano** contando como
+> fizeram, e um conteúdo sobre as **tendências** que estão mudando o consultório.
 >
 > **{{NOME_DO_EVENTO}}**
 > Segunda-feira, 07/12 · {{HORÁRIO}}
@@ -105,6 +105,8 @@
 
 ## Observações
 
+- **Sem nomes nem rostos:** o convite e a página vendem o evento e o nível da sala. Os palestrantes não são identificados.
+- **Cliente x convidado:** o cliente só confirma o nome e se vai ou não; o convidado informa nome, telefone, Instagram e especialidade. A página decide isso com o pop-up de entrada.
 - **Tom:** convite pessoal e sóbrio. Evite apelos de venda; a noite é de relacionamento e conteúdo.
 - **Identidade visual:** o texto está sem marca. Aplique as cores e a tipografia da Altta na arte do cartão.
 - **Rastreio:** cada doutor deve ter um `ref` próprio nos dois QRs. Assim você sabe quem confirmou e quem foi o convidado de quem, sem pedir nada a mais para as pessoas.

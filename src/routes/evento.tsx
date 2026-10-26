@@ -5,12 +5,9 @@ import {
   useState,
   type CSSProperties,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
-import carollinaBorgesImg from "@/assets/evento/carollina-borges.jpg";
-import carollinaMoncaoImg from "@/assets/evento/carollina-moncao.jpg";
-import tayaneImg from "@/assets/evento/tayane.jpg";
-import derekImg from "@/assets/evento/derek.jpg";
 
 /* -------------------------------------------------------------------------- */
 /*  CONFIGURAÇÃO DO EVENTO — tudo que muda fica aqui, nada espalhado na página */
@@ -39,29 +36,43 @@ const EVENT = {
   seats: 30,
   // Prazo final de confirmação (para fechar o número com o restaurante)
   rsvpDeadline: "23/11",
-  // Início/fim para o botão "Adicionar à agenda" (horário local). TODO: ajustar com o horário real.
+  // Início/fim para os botões de agenda (horário de Brasília)
   calendarStart: "20261207T183000",
   calendarEnd: "20261207T220000",
 };
 
-// Os Big Cases. Preencha role (especialidade) e photo (import de src/assets) quando tiver.
-const CASES: { numeral: string; name: string; role?: string; photo?: string }[] = [
-  { numeral: "I", name: "Dra. Carollina Borges", photo: carollinaBorgesImg },
-  { numeral: "II", name: "Dra. Carollina Monção", photo: carollinaMoncaoImg },
-  { numeral: "III", name: "Dra. Tayane Nascimento", photo: tayaneImg },
-  { numeral: "IV", name: "Dr. Derek Gonçalves", photo: derekImg },
+// A página vende o evento e o nível da sala, não as pessoas: não há nomes nem rostos de palestrantes.
+const PILARES = [
+  {
+    numeral: "I",
+    title: "Como fizeram",
+    text: "Profissionais que faturam mais de R$ 1 milhão por ano contam, em detalhes, como construíram esse resultado.",
+  },
+  {
+    numeral: "II",
+    title: "A trajetória",
+    text: "De onde partiram, o que mudou pelo caminho e onde estão hoje.",
+  },
+  {
+    numeral: "III",
+    title: "A sala certa",
+    text: "Uma noite entre profissionais num nível acima do mercado, para trocar de igual para igual.",
+  },
 ];
 
 const PROGRAMA = [
   { title: "Recepção", text: "Boas-vindas e brinde de abertura." },
   { title: "Abertura", text: "O que nos trouxe até aqui." },
-  { title: "Os Big Cases", text: "Quatro profissionais, quatro histórias, números reais." },
+  {
+    title: "Os profissionais",
+    text: "Quem fatura mais de R$ 1 milhão por ano conta como fez.",
+  },
   { title: "Tendências do mercado", text: "Para onde o mercado caminha e como chegar na frente." },
   { title: "Jantar e networking", text: "Uma mesa com quem está no mesmo patamar." },
 ];
 
 // Para onde a confirmação é enviada (n8n, Make, Zapier, etc.).
-// TODO: preencher. Enquanto vazio, o envio só funciona em ambiente de desenvolvimento.
+// TODO: preencher. Enquanto vazio, o envio só funciona em desenvolvimento e na prévia.
 const RSVP_WEBHOOK_URL = "";
 
 // Foto do local (opcional): coloque o arquivo em src/assets/local.jpg (ou .jpeg/.png/.webp)
@@ -74,13 +85,12 @@ const venuePhotos = import.meta.glob("../assets/local.{jpg,jpeg,png,webp}", {
 const VENUE_PHOTO: string | undefined = Object.values(venuePhotos)[0];
 
 export const Route = createFileRoute("/evento")({
-  // ?ref=nome-do-doutor identifica quem convidou; ?c=1 marca que é o convite do acompanhante
+  // ?ref=nome-do-doutor identifica de quem veio o convite (os dois cartões usam o mesmo QR)
   validateSearch: (search: Record<string, unknown>) => ({
     ref:
       typeof search.ref === "string" && search.ref.trim()
         ? search.ref.trim().slice(0, 80)
         : undefined,
-    c: search.c === "1" || search.c === 1 ? ("1" as const) : undefined,
   }),
   head: () => ({
     meta: [
@@ -111,10 +121,8 @@ function maskPhone(v: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-// "dra-maria-silva" -> "Dra Maria Silva"
-function prettifyRef(ref: string) {
-  return ref.replace(/[-_]+/g, " ").replace(/\b\p{L}/gu, (c) => c.toUpperCase());
-}
+const isInstagram = (v: string) => /^@?[A-Za-z0-9._]{1,30}$/.test(v.trim());
+const normalizeInstagram = (v: string) => `@${v.trim().replace(/^@/, "")}`;
 
 // ===== AGENDA: início =====
 // Fuso do evento: Brasília (UTC-3, sem horário de verão). O .ics usa UTC para abrir certo em qualquer fuso.
@@ -240,15 +248,23 @@ const CSS = `
 
 /* intro */
 .lx-intro{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:#050505;
-  transition:opacity 1s ease,transform 1.1s cubic-bezier(.7,0,.2,1),filter 1s ease;cursor:pointer}
+  transition:opacity 1s ease,transform 1.1s cubic-bezier(.7,0,.2,1),filter 1s ease;overflow-y:auto}
 .lx-intro::after{content:"";position:absolute;inset:0;background:radial-gradient(60% 45% at 50% 50%,rgba(200,169,106,.13),transparent 70%)}
 .lx-intro.is-leaving{opacity:0;transform:scale(1.06);filter:blur(8px);pointer-events:none}
-.lx-intro-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:26px}
+.lx-intro-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:26px;margin:auto;padding:28px 0}
 .lx-intro-line{display:block;width:1px;height:64px;background:linear-gradient(var(--gold),transparent);transform-origin:top;animation:lxGrowY 1.4s .1s cubic-bezier(.2,.7,.2,1) both}
 .lx-intro-line.b{background:linear-gradient(transparent,var(--gold));transform-origin:bottom}
 .lx-intro-mark{display:flex;gap:.34em;font-size:clamp(34px,9vw,60px);font-weight:300;letter-spacing:.1em;color:var(--gold-hi)}
 .lx-intro-mark span{opacity:0;animation:lxLetter 1s cubic-bezier(.2,.7,.2,1) both}
-.lx-intro-actions{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:14px;opacity:0;animation:lxFade 1.2s 2.5s ease both}
+.lx-intro-actions{display:flex;flex-direction:column;align-items:center;margin-top:8px;opacity:0;animation:lxFade 1.2s 2.5s ease both}
+.lx-gate{position:relative;width:min(92vw,400px);padding:30px 26px 24px;text-align:center;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(200,169,106,.07),rgba(10,10,10,.65));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.lx-gate::before{content:"";position:absolute;inset:7px;border:1px solid rgba(200,169,106,.1);pointer-events:none}
+.lx-gate-title{margin:0;font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold)}
+.lx-gate-q{margin:12px 0 22px;font:400 clamp(24px,6.4vw,30px)/1.15 'Cormorant Garamond',Georgia,serif}
+.lx-gate .lx-btn{width:100%;padding:17px 14px;font-size:11px;letter-spacing:.26em}
+.lx-gate .lx-btn+.lx-btn{margin-top:12px}
+.lx-gate-note{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px 0 0;font-size:11px;letter-spacing:.16em;color:var(--mut)}
 .lx-intro-sub{margin:0;font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--mut);opacity:0;animation:lxFade 1s 1.5s ease both}
 
 /* hero */
@@ -297,21 +313,6 @@ const CSS = `
 .lx-statement{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;line-height:1.12;text-align:center;
   font-size:clamp(34px,6.6vw,70px);max-width:900px;margin:0 auto}
 .lx-statement em{font-style:italic;font-weight:400}
-.lx-cases{display:grid;grid-template-columns:1fr 1fr;gap:40px 18px;margin-top:70px}
-.lx-case{text-align:center}
-.lx-arch{position:relative;aspect-ratio:3/4;border-radius:999px 999px 6px 6px;overflow:hidden;
-  border:1px solid var(--line);background:radial-gradient(90% 70% at 50% 25%,#1c1913,#0b0a08 70%)}
-.lx-arch::after{content:"";position:absolute;inset:9px;border-radius:999px 999px 2px 2px;border:1px solid rgba(200,169,106,.25);pointer-events:none;z-index:2}
-.lx-arch img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;
-  filter:saturate(.78) contrast(1.06) brightness(.88) sepia(.18);
-  transition:filter .9s ease,transform 1.4s cubic-bezier(.2,.7,.2,1)}
-.lx-arch.has-photo::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(180deg,rgba(200,169,106,.12),transparent 38%,rgba(7,7,7,.88) 100%)}
-.lx-case:hover .lx-arch img{filter:saturate(.95) contrast(1.04) brightness(.97) sepia(.06);transform:scale(1.035)}
-.lx-arch svg{position:absolute;left:50%;bottom:0;width:62%;transform:translateX(-50%);fill:rgba(200,169,106,.13)}
-.lx-arch .num{position:absolute;top:19%;left:0;right:0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(40px,11vw,64px);color:rgba(239,223,178,.55)}
-.lx-case h3{margin:22px 0 0;font-family:'Cormorant Garamond',serif;font-weight:400;font-style:italic;font-size:clamp(19px,5.4vw,26px);line-height:1.15}
-.lx-case p{margin:8px auto 0;max-width:260px;color:var(--mut);font-size:14.5px;line-height:1.6}
 
 /* programa */
 .lx-prog{margin-top:46px;position:relative}
@@ -331,11 +332,37 @@ const CSS = `
   color:var(--ink);font:300 18px 'Jost',sans-serif;outline:none;transition:border-color .4s}
 .lx-field input::placeholder{color:rgba(165,159,147,.55)}
 .lx-field input:focus{border-bottom-color:var(--gold-hi)}
-.lx-guest{margin-top:34px;padding-top:6px;border-top:1px solid var(--line)}
 .lx-err{margin:20px 0 0;color:#e58b7a;font-size:14px}
-.lx-row{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
-.lx-guest-note{margin:10px 0 0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
-.lx-guest-title{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-style:italic;color:var(--gold-hi)}
+
+/* pilares */
+.lx-pillars{display:grid;gap:18px;margin-top:64px}
+.lx-pillars>.lx-rv{display:flex}
+.lx-pillar{flex:1;position:relative;padding:34px 28px 32px;border:1px solid var(--line);text-align:left;
+  background:linear-gradient(180deg,rgba(200,169,106,.05),rgba(200,169,106,.01))}
+.lx-pillar::before{content:"";position:absolute;inset:7px;border:1px solid rgba(200,169,106,.08);pointer-events:none}
+.lx-pillar .num{display:block;font:italic 400 64px/1 'Cormorant Garamond',Georgia,serif;color:rgba(239,223,178,.55)}
+.lx-pillar h3{margin:18px 0 0;font:400 28px/1.1 'Cormorant Garamond',Georgia,serif}
+.lx-pillar p{margin:12px 0 0;color:var(--mut);font-size:15px;line-height:1.7}
+
+/* pop-up de confirmação */
+.lx-modal{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,3,3,.74);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:lxFade .35s ease both}
+.lx-modal-card{position:relative;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:44px 26px 30px;outline:none;
+  border:1px solid var(--line);background:linear-gradient(180deg,#15120d,#0a0908);animation:lxRise .6s cubic-bezier(.2,.7,.2,1) both}
+.lx-modal-card::before{content:"";position:absolute;inset:7px;border:1px solid rgba(200,169,106,.1);pointer-events:none}
+.lx-modal-x{position:absolute;top:10px;right:10px;z-index:2;display:grid;place-items:center;width:40px;height:40px;
+  background:none;border:0;color:var(--mut);font-size:26px;line-height:1;cursor:pointer;transition:color .3s}
+.lx-modal-x:hover{color:#fff}
+.lx-modal .lx-field{margin-top:20px}
+.lx-choice-label{display:block;margin-top:24px;font-size:10px;letter-spacing:.38em;text-transform:uppercase;color:var(--gold)}
+.lx-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.lx-choice button{padding:16px 10px;background:transparent;border:1px solid var(--line);color:var(--ink);cursor:pointer;
+  font:400 12px 'Jost',sans-serif;letter-spacing:.28em;text-transform:uppercase;transition:border-color .3s,background .3s,color .3s}
+.lx-choice button:hover{border-color:var(--gold)}
+.lx-choice button[aria-checked=true]{border-color:transparent;color:#120d05;background:linear-gradient(100deg,#b8934f,#f1e1b6 50%,#c8a96a)}
+.lx-switch{display:block;margin:22px auto 0;padding:6px;background:none;border:0;cursor:pointer;color:var(--mut);
+  font:400 12px 'Jost',sans-serif;letter-spacing:.06em;text-decoration:underline;text-decoration-color:rgba(200,169,106,.5);text-underline-offset:5px}
+.lx-switch:hover{color:var(--gold-hi)}
 
 /* local */
 .lx-venue{position:relative;margin-top:44px;border:1px solid var(--line);padding:9px}
@@ -378,13 +405,14 @@ const CSS = `
   .lx-meta>div:first-child{border-left:0}
 
   .lx-sec{padding-top:150px}
+  .lx-pillars{grid-template-columns:repeat(3,1fr);gap:22px}
+  .lx-modal{align-items:center;padding:24px}
+  .lx-modal-card{padding:50px 46px 36px}
   .lx-frame{padding:60px 56px}
   .lx-split{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
 }
 
-@media (min-width:900px){
-  .lx-cases{grid-template-columns:repeat(4,1fr);gap:28px}
-}
+@media (max-height:700px){.lx-intro-line{height:34px}.lx-intro-inner{gap:16px}}
 
 @keyframes lxShine{to{background-position:220% center}}
 @keyframes lxRise{from{opacity:0;transform:translateY(26px);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
@@ -397,7 +425,6 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){
   .lx *{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
   .lx-rv{opacity:1;transform:none;filter:none}
-  .lx-intro{display:none}
   .lx:not(.is-ready) .ha{opacity:1}
 }
 `;
@@ -768,131 +795,93 @@ function Reveal({
   );
 }
 
-function Silhouette() {
-  return (
-    <svg viewBox="0 0 100 120" aria-hidden="true">
-      <circle cx="50" cy="42" r="20" />
-      <path d="M10 120c0-27 18-44 40-44s40 17 40 44z" />
-    </svg>
-  );
-}
-
-type Person = { nome: string; sobrenome: string; instagram: string; phone: string };
-const EMPTY_PERSON: Person = { nome: "", sobrenome: "", instagram: "", phone: "" };
-
-const isInstagram = (v: string) => /^@?[A-Za-z0-9._]{1,30}$/.test(v.trim());
-const normalizeInstagram = (v: string) => `@${v.trim().replace(/^@/, "")}`;
-
-// label vem com espaço à frente quando existe (ex.: " do convidado")
-function validatePerson(p: Person, label: string): string | null {
-  if (p.nome.trim().length < 2) return `Informe o nome${label}.`;
-  if (p.sobrenome.trim().length < 2) return `Informe o sobrenome${label}.`;
-  if (!isInstagram(p.instagram)) return `Informe o @ do Instagram${label}.`;
-  if (p.phone.replace(/\D/g, "").length < 10) return `Telefone${label} inválido.`;
-  return null;
-}
-
-function personPayload(p: Person) {
-  return {
-    nome: `${p.nome.trim()} ${p.sobrenome.trim()}`.trim(),
-    instagram: p.instagram.trim() ? normalizeInstagram(p.instagram) : "",
-    whatsapp: p.phone.replace(/\D/g, ""),
-  };
-}
-
-// Nome, sobrenome, @ do Instagram e telefone. `own` = a própria pessoa preenchendo (liga o autopreenchimento).
-function PersonFields({
-  value,
-  onChange,
-  own = false,
-}: {
-  value: Person;
-  onChange: (p: Person) => void;
-  own?: boolean;
-}) {
-  const set = (k: keyof Person, v: string) => onChange({ ...value, [k]: v });
-  return (
-    <>
-      <div className="lx-row">
-        <label className="lx-field">
-          <span>Nome</span>
-          <input
-            placeholder="Nome"
-            autoComplete={own ? "given-name" : "off"}
-            value={value.nome}
-            onChange={(e) => set("nome", e.target.value)}
-          />
-        </label>
-        <label className="lx-field">
-          <span>Sobrenome</span>
-          <input
-            placeholder="Sobrenome"
-            autoComplete={own ? "family-name" : "off"}
-            value={value.sobrenome}
-            onChange={(e) => set("sobrenome", e.target.value)}
-          />
-        </label>
-      </div>
-      <label className="lx-field">
-        <span>Instagram</span>
-        <input
-          placeholder="@usuario"
-          autoCapitalize="none"
-          autoCorrect="off"
-          value={value.instagram}
-          onChange={(e) => set("instagram", e.target.value)}
-        />
-      </label>
-      <label className="lx-field">
-        <span>Telefone</span>
-        <input
-          placeholder="(00) 00000-0000"
-          inputMode="tel"
-          autoComplete={own ? "tel" : "off"}
-          value={value.phone}
-          onChange={(e) => set("phone", maskPhone(e.target.value))}
-        />
-      </label>
-    </>
-  );
-}
-
 type IntroState = "show" | "leaving" | "gone";
+type Audience = "cliente" | "convidado";
+
+const SPEAKER_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    width="15"
+    height="15"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    aria-hidden="true"
+  >
+    <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+    <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+  </svg>
+);
 
 function Evento() {
-  const { ref, c } = Route.useSearch();
-  const isGuest = c === "1";
+  const { ref } = Route.useSearch();
+  return <EventoPage invitedBy={ref} />;
+}
 
+export function EventoPage({ invitedBy }: { invitedBy?: string }) {
   const [intro, setIntro] = useState<IntroState>("show");
   const [hasAudio, setHasAudio] = useState(false);
   const [muted, setMuted] = useState(false);
+
+  const [audience, setAudience] = useState<Audience>("convidado");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [confirmed, setConfirmed] = useState<{ vai: boolean } | null>(null);
   const [nome, setNome] = useState("");
-  const [eu, setEu] = useState<Person>(EMPTY_PERSON);
-  const [convidado, setConvidado] = useState<Person>(EMPTY_PERSON);
-  const [convidadoPor, setConvidadoPor] = useState(ref ? prettifyRef(ref) : "");
+  const [vai, setVai] = useState<"sim" | "nao" | null>(null);
+  const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [especialidade, setEspecialidade] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  // Abertura: com "reduzir movimento" ativado ela é pulada; senão espera o toque em "Entrar".
+  // Trava a rolagem do site enquanto a porta de entrada ou o pop-up estiverem abertos.
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setIntro("gone");
-  }, []);
-
-  // Trava a rolagem enquanto a abertura está na tela.
-  useEffect(() => {
-    document.body.style.overflow = intro === "show" ? "hidden" : "";
+    document.body.style.overflow = intro === "show" || modalOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [intro]);
+  }, [intro, modalOpen]);
 
-  const enter = () => {
+  // Pop-up aberto: o foco fica nele (sem abrir o teclado do celular) mesmo quando o conteúdo troca,
+  // e a tecla Esc fecha em qualquer momento.
+  useEffect(() => {
+    if (!modalOpen) return;
+    const t = window.setTimeout(() => cardRef.current?.focus(), 80);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setModalOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [modalOpen, confirmed, audience]);
+
+  // Porta de entrada: a escolha libera o áudio, abre o site e, logo depois, o pop-up da pessoa.
+  const enter = (kind: Audience) => {
     if (intro !== "show") return;
     playEntrance();
     setHasAudio(true);
+    setAudience(kind);
     setIntro("leaving");
     window.setTimeout(() => setIntro("gone"), 1100);
+    window.setTimeout(() => setModalOpen(true), 1500);
+  };
+
+  const openModal = () => {
+    playUi("tap");
+    setErr("");
+    setModalOpen(true);
+  };
+  const closeModal = () => setModalOpen(false);
+
+  const switchAudience = () => {
+    playUi("tap");
+    setAudience((a) => (a === "cliente" ? "convidado" : "cliente"));
+    setConfirmed(null);
+    setErr("");
   };
 
   const toggleSound = () => {
@@ -902,18 +891,33 @@ function Evento() {
     if (turningOn) playUi("tap");
   };
 
+  const onCardKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !cardRef.current) return;
+    const items = Array.from(
+      cardRef.current.querySelectorAll<HTMLElement>("button, a[href], input"),
+    ).filter((el) => !el.hasAttribute("disabled"));
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
 
-    let invalid: string | null;
-    if (isGuest) {
-      invalid =
-        validatePerson(eu, "") ?? (convidadoPor.trim() ? null : "Informe quem te convidou.");
-    } else if (nome.trim().split(/\s+/).length < 2) {
-      invalid = "Informe seu nome e sobrenome.";
-    } else {
-      invalid = validatePerson(convidado, " do convidado");
-    }
+    let invalid: string | null = null;
+    if (nome.trim().split(/\s+/).length < 2) invalid = "Informe seu nome completo.";
+    else if (audience === "cliente") {
+      if (!vai) invalid = "Diga se você vai ou não.";
+    } else if (phone.replace(/\D/g, "").length < 10) invalid = "Telefone inválido.";
+    else if (!isInstagram(instagram)) invalid = "Informe seu @ do Instagram.";
+    else if (especialidade.trim().length < 2) invalid = "Informe sua especialidade.";
     if (invalid) {
       playUi("error");
       return setErr(invalid);
@@ -925,20 +929,20 @@ function Evento() {
     const base = {
       evento: EVENT.name,
       data_evento: EVENT.dateShort,
-      ref: ref ?? "",
+      ref: invitedBy ?? "",
       data_confirmacao: new Date().toISOString(),
     };
-    const guestData = personPayload(convidado);
-    const payload = isGuest
-      ? { ...base, tipo: "convidado", ...personPayload(eu), convidado_por: convidadoPor.trim() }
-      : {
-          ...base,
-          tipo: "cliente",
-          nome: nome.trim(),
-          convidado_nome: guestData.nome,
-          convidado_instagram: guestData.instagram,
-          convidado_whatsapp: guestData.whatsapp,
-        };
+    const payload =
+      audience === "cliente"
+        ? { ...base, tipo: "cliente", nome: nome.trim(), vai }
+        : {
+            ...base,
+            tipo: "convidado",
+            nome: nome.trim(),
+            whatsapp: phone.replace(/\D/g, ""),
+            instagram: normalizeInstagram(instagram),
+            especialidade: especialidade.trim(),
+          };
 
     try {
       if (RSVP_WEBHOOK_URL) {
@@ -948,14 +952,15 @@ function Evento() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(`Webhook respondeu ${res.status}`);
-      } else if (import.meta.env.DEV) {
-        // Sem destino configurado: só simula em desenvolvimento, para não perder confirmações em produção.
+      } else if (import.meta.env.DEV || import.meta.env.VITE_PREVIEW === "1") {
+        // Sem destino configurado: só simula em desenvolvimento e na prévia, para não perder confirmações em produção.
         console.warn("[evento] RSVP_WEBHOOK_URL vazio — confirmação não enviada:", payload);
       } else {
         throw new Error("RSVP_WEBHOOK_URL não configurado");
       }
-      setConfirmed(true);
-      playUi("success");
+      const goes = audience === "cliente" ? vai === "sim" : true;
+      setConfirmed({ vai: goes });
+      playUi(goes ? "success" : "tap");
     } catch {
       playUi("error");
       setErr("Não conseguimos registrar sua confirmação agora. Tente novamente em instantes.");
@@ -964,14 +969,43 @@ function Evento() {
     }
   };
 
-  const confirmedNames = isGuest ? eu.nome.trim() : `${nome.trim()} e ${convidado.nome.trim()}`;
-
   const ready = intro !== "show";
+  const ctaLabel = confirmed
+    ? "Ver minha confirmação"
+    : audience === "cliente"
+      ? "Confirmar minha ida"
+      : "Reservar meu lugar";
+
+  const calendarButtons = (
+    <div className="lx-cal">
+      <p className="lx-cal-title">Adicionar à minha agenda</p>
+      <div className="lx-cal-row">
+        <a
+          className="lx-btn"
+          href={calendarUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => playUi("tap")}
+        >
+          Google Agenda
+        </a>
+        <a
+          className="lx-btn"
+          href={icsHref()}
+          download="encontro-de-cases-altta.ics"
+          onClick={() => playUi("tap")}
+        >
+          iPhone · Apple · Outlook
+        </a>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`lx ${ready ? "is-ready" : ""}`}>
       <style>{CSS}</style>
 
+      {/* PORTA DE ENTRADA: pop-up antes do site */}
       {intro !== "gone" && (
         <div className={`lx-intro ${intro === "leaving" ? "is-leaving" : ""}`}>
           <div className="lx-intro-inner">
@@ -988,21 +1022,17 @@ function Evento() {
             </div>
             <p className="lx-intro-sub">Convite exclusivo</p>
             <div className="lx-intro-actions">
-              <button type="button" className="lx-btn solid" onClick={enter}>
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  aria-hidden="true"
-                >
-                  <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
-                  <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" strokeLinecap="round" />
-                </svg>
-                Entrar
-              </button>
+              <div className="lx-gate" role="group" aria-label="Antes de entrar">
+                <p className="lx-gate-title">Antes de entrar</p>
+                <p className="lx-gate-q">Você já é cliente da Altta?</p>
+                <button type="button" className="lx-btn solid" onClick={() => enter("cliente")}>
+                  Sim, já sou cliente
+                </button>
+                <button type="button" className="lx-btn" onClick={() => enter("convidado")}>
+                  Não, fui convidado(a)
+                </button>
+                <p className="lx-gate-note">{SPEAKER_ICON} Este convite tem som</p>
+              </div>
             </div>
             <span className="lx-intro-line b" />
           </div>
@@ -1055,8 +1085,8 @@ function Evento() {
           <span className="l2 lx-gold">{EVENT.titleLine2}</span>
         </h1>
         <p className="lx-lede ha" style={{ "--d": "0.6s" } as CSSProperties}>
-          Uma noite fechada com profissionais que faturaram{" "}
-          <b>mais de R$ 1 milhão em um único ano</b>, e vão contar como fizeram.
+          Uma noite fechada com profissionais num nível acima do mercado, que faturam{" "}
+          <b>mais de R$ 1 milhão por ano</b> e vão contar como fizeram.
         </p>
 
         <div className="lx-meta ha" style={{ "--d": "0.8s" } as CSSProperties}>
@@ -1083,14 +1113,14 @@ function Evento() {
           Começamos às {EVENT.timeLabel} {EVENT.timeNote}.
         </p>
 
-        <a
-          href="#confirmar"
-          onClick={() => playUi("tap")}
+        <button
+          type="button"
+          onClick={openModal}
           className="lx-btn solid ha"
           style={{ "--d": "1s", marginTop: 34 } as CSSProperties}
         >
-          Reservar meu lugar
-        </a>
+          {ctaLabel}
+        </button>
         <p
           className="ha"
           style={
@@ -1108,33 +1138,24 @@ function Evento() {
         <span className="lx-scroll" />
       </header>
 
-      {/* DECLARAÇÃO */}
+      {/* O QUE ESPERAR */}
       <section className="lx-sec">
         <div className="lx-wrap">
           <Reveal>
             <p className="lx-statement">
-              Quatro histórias. <em className="lx-gold">Mais de R$ 1 milhão</em> em um único ano.
-              Uma noite para ouvir, de perto, <em>como foi feito.</em>
+              Profissionais num nível <em>acima do mercado</em>.{" "}
+              <em className="lx-gold">Mais de R$ 1 milhão</em> por ano. Uma noite para ouvir, de
+              perto, <em>como foi feito.</em>
             </p>
           </Reveal>
 
-          <div className="lx-cases">
-            {CASES.map((cs, i) => (
-              <Reveal key={cs.numeral} delay={i * 140}>
-                <div className="lx-case">
-                  <div className={`lx-arch ${cs.photo ? "has-photo" : ""}`}>
-                    {cs.photo ? (
-                      <img src={cs.photo} alt={cs.name} />
-                    ) : (
-                      <>
-                        <span className="num">{cs.numeral}</span>
-                        <Silhouette />
-                      </>
-                    )}
-                  </div>
-
-                  <h3>{cs.name}</h3>
-                  {cs.role && <p>{cs.role}</p>}
+          <div className="lx-pillars">
+            {PILARES.map((p, i) => (
+              <Reveal key={p.numeral} delay={i * 140}>
+                <div className="lx-pillar">
+                  <span className="num">{p.numeral}</span>
+                  <h3>{p.title}</h3>
+                  <p>{p.text}</p>
                 </div>
               </Reveal>
             ))}
@@ -1146,7 +1167,7 @@ function Evento() {
       <section className="lx-sec">
         <div className="lx-wrap lx-split">
           <Reveal>
-            <span className="lx-eyebrow">Além dos cases</span>
+            <span className="lx-eyebrow">Além das histórias</span>
             <h2 className="lx-h2">
               Para onde o <em className="lx-gold">mercado</em> caminha
             </h2>
@@ -1199,109 +1220,25 @@ function Evento() {
       <section id="confirmar" className="lx-sec" style={{ scrollMarginTop: 20 }}>
         <div className="lx-wrap" style={{ maxWidth: 720 }}>
           <Reveal>
-            <div className="lx-frame">
-              {confirmed ? (
-                <div style={{ textAlign: "center", padding: "20px 0" }}>
-                  <span className="lx-eyebrow both">Confirmado</span>
-                  <h2 className="lx-h2">
-                    Seu lugar está <em className="lx-gold">reservado</em>
-                  </h2>
-                  <p className="lx-p" style={{ margin: "24px auto 0" }}>
-                    {confirmedNames}, nos vemos na {EVENT.weekday.toLowerCase()}, {EVENT.dateLabel},
-                    às {EVENT.timeLabel} {EVENT.timeNote}.
-                  </p>
-                  <div className="lx-cal">
-                    <p className="lx-cal-title">Adicionar à minha agenda</p>
-                    <div className="lx-cal-row">
-                      <a
-                        className="lx-btn"
-                        href={calendarUrl()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => playUi("tap")}
-                      >
-                        Google Agenda
-                      </a>
-                      <a
-                        className="lx-btn"
-                        href={icsHref()}
-                        download="encontro-de-cases-altta.ics"
-                        onClick={() => playUi("tap")}
-                      >
-                        iPhone · Apple · Outlook
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <form
-                  onSubmit={submit}
-                  noValidate
-                  onFocus={(e) => {
-                    if (e.target instanceof HTMLInputElement) playUi("focus");
-                  }}
-                >
-                  <div style={{ textAlign: "center" }}>
-                    <span className="lx-eyebrow both">{EVENT.seats} lugares</span>
-                    <h2 className="lx-h2">
-                      Reserve o <em className="lx-gold">seu lugar</em>
-                    </h2>
-                    <p className="lx-p" style={{ margin: "18px auto 0" }}>
-                      {isGuest
-                        ? "Você foi convidado(a) para esta noite. Confirme seus dados para garantir o seu lugar."
-                        : "Confirme a sua presença e informe os dados do seu convidado, que precisa ser um profissional da sua área."}
-                    </p>
-                  </div>
-
-                  {isGuest ? (
-                    <>
-                      <PersonFields own value={eu} onChange={setEu} />
-                      <label className="lx-field">
-                        <span>Quem te convidou</span>
-                        <input
-                          placeholder="Nome de quem te convidou"
-                          value={convidadoPor}
-                          onChange={(e) => setConvidadoPor(e.target.value)}
-                        />
-                      </label>
-                    </>
-                  ) : (
-                    <>
-                      <label className="lx-field">
-                        <span>Seu nome</span>
-                        <input
-                          placeholder="Nome e sobrenome"
-                          autoComplete="name"
-                          value={nome}
-                          onChange={(e) => setNome(e.target.value)}
-                        />
-                      </label>
-                      <div className="lx-guest">
-                        <p className="lx-guest-title">Seu convidado(a)</p>
-                        <p className="lx-guest-note">
-                          Obrigatório · precisa ser um profissional da sua área
-                        </p>
-                        <PersonFields value={convidado} onChange={setConvidado} />
-                      </div>
-                    </>
-                  )}
-
-                  {err && (
-                    <p role="alert" className="lx-err">
-                      {err}
-                    </p>
-                  )}
-
-                  <div style={{ textAlign: "center", marginTop: 40 }}>
-                    <button type="submit" disabled={loading} className="lx-btn solid">
-                      {loading ? "Confirmando..." : "Confirmar presença"}
-                    </button>
-                    <p style={{ marginTop: 18, fontSize: 12, color: "var(--mut)" }}>
-                      Seus dados são usados apenas para organizar o evento.
-                    </p>
-                  </div>
-                </form>
-              )}
+            <div className="lx-frame" style={{ textAlign: "center" }}>
+              <span className="lx-eyebrow both">{EVENT.seats} lugares</span>
+              <h2 className="lx-h2">
+                Reserve o <em className="lx-gold">seu lugar</em>
+              </h2>
+              <p className="lx-p" style={{ margin: "18px auto 0" }}>
+                {audience === "cliente"
+                  ? "Confirme a sua ida em menos de um minuto."
+                  : "Preencha seus dados para garantir o seu lugar."}{" "}
+                Confirmação até {EVENT.rsvpDeadline}.
+              </p>
+              <button
+                type="button"
+                className="lx-btn solid"
+                style={{ marginTop: 34 }}
+                onClick={openModal}
+              >
+                {ctaLabel}
+              </button>
             </div>
           </Reveal>
 
@@ -1357,6 +1294,197 @@ function Evento() {
       >
         {EVENT.brand} · Convite pessoal e intransferível
       </footer>
+
+      {/* POP-UP DE CONFIRMAÇÃO (cliente: nome + vai/não vai; convidado: dados completos) */}
+      {modalOpen && (
+        <div
+          className="lx-modal"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            className="lx-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rsvp-title"
+            tabIndex={-1}
+            ref={cardRef}
+            onKeyDown={onCardKeyDown}
+          >
+            <button type="button" className="lx-modal-x" aria-label="Fechar" onClick={closeModal}>
+              ×
+            </button>
+
+            {confirmed ? (
+              <div style={{ textAlign: "center" }}>
+                {confirmed.vai ? (
+                  <>
+                    <span className="lx-eyebrow both">Confirmado</span>
+                    <h2 id="rsvp-title" className="lx-h2">
+                      Seu lugar está <em className="lx-gold">reservado</em>
+                    </h2>
+                    <p className="lx-p" style={{ margin: "20px auto 0" }}>
+                      {nome.trim()}, nos vemos na {EVENT.weekday.toLowerCase()}, {EVENT.dateLabel},
+                      às {EVENT.timeLabel} {EVENT.timeNote}.
+                    </p>
+                    {calendarButtons}
+                  </>
+                ) : (
+                  <>
+                    <span className="lx-eyebrow both">Resposta registrada</span>
+                    <h2 id="rsvp-title" className="lx-h2">
+                      Sentiremos a sua <em className="lx-gold">falta</em>
+                    </h2>
+                    <p className="lx-p" style={{ margin: "20px auto 0" }}>
+                      Obrigado por avisar. Se mudar de ideia, é só voltar a esta página.
+                    </p>
+                    <button
+                      type="button"
+                      className="lx-switch"
+                      onClick={() => {
+                        playUi("tap");
+                        setConfirmed(null);
+                        setVai(null);
+                      }}
+                    >
+                      Mudar minha resposta
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <form
+                onSubmit={submit}
+                noValidate
+                onFocus={(e) => {
+                  if (e.target instanceof HTMLInputElement) playUi("focus");
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <span className="lx-eyebrow both">
+                    {audience === "cliente" ? "Cliente Altta" : "Convite exclusivo"}
+                  </span>
+                  <h2 id="rsvp-title" className="lx-h2">
+                    {audience === "cliente" ? (
+                      <>
+                        Confirme <em className="lx-gold">sua ida</em>
+                      </>
+                    ) : (
+                      <>
+                        Reserve o <em className="lx-gold">seu lugar</em>
+                      </>
+                    )}
+                  </h2>
+                  <p className="lx-p" style={{ margin: "16px auto 0" }}>
+                    {audience === "cliente"
+                      ? "Informe seu nome completo e diga se você vai estar com a gente."
+                      : "Preencha seus dados para garantir o seu lugar. Convite exclusivo para profissionais da área."}
+                  </p>
+                </div>
+
+                <label className="lx-field">
+                  <span>Nome completo</span>
+                  <input
+                    placeholder="Nome e sobrenome"
+                    autoComplete="name"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                  />
+                </label>
+
+                {audience === "cliente" ? (
+                  <>
+                    <span className="lx-choice-label" id="vai-label">
+                      Você vai?
+                    </span>
+                    <div className="lx-choice" role="radiogroup" aria-labelledby="vai-label">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={vai === "sim"}
+                        onClick={() => {
+                          playUi("tap");
+                          setVai("sim");
+                        }}
+                      >
+                        Vou
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={vai === "nao"}
+                        onClick={() => {
+                          playUi("tap");
+                          setVai("nao");
+                        }}
+                      >
+                        Não vou
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label className="lx-field">
+                      <span>Telefone</span>
+                      <input
+                        placeholder="(00) 00000-0000"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(maskPhone(e.target.value))}
+                      />
+                    </label>
+                    <label className="lx-field">
+                      <span>Instagram</span>
+                      <input
+                        placeholder="@usuario"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        value={instagram}
+                        onChange={(e) => setInstagram(e.target.value)}
+                      />
+                    </label>
+                    <label className="lx-field">
+                      <span>Especialidade</span>
+                      <input
+                        placeholder="Ex.: Dentista, Dermatologista..."
+                        value={especialidade}
+                        onChange={(e) => setEspecialidade(e.target.value)}
+                      />
+                    </label>
+                  </>
+                )}
+
+                {err && (
+                  <p role="alert" className="lx-err">
+                    {err}
+                  </p>
+                )}
+
+                <div style={{ textAlign: "center", marginTop: 32 }}>
+                  <button type="submit" disabled={loading} className="lx-btn solid">
+                    {loading
+                      ? "Enviando..."
+                      : audience === "cliente"
+                        ? "Confirmar"
+                        : "Confirmar presença"}
+                  </button>
+                  <p style={{ marginTop: 16, fontSize: 12, color: "var(--mut)" }}>
+                    Seus dados são usados apenas para organizar o evento.
+                  </p>
+                </div>
+
+                <button type="button" className="lx-switch" onClick={switchAudience}>
+                  {audience === "cliente"
+                    ? "Não sou cliente, fui convidado(a)"
+                    : "Já sou cliente da Altta"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
