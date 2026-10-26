@@ -60,6 +60,13 @@ const PILARES = [
   },
 ];
 
+// Linha de prova da Altta (afirmação pública: confirmar o número antes de publicar)
+const PROVA = {
+  prefixo: "mais de",
+  numero: "R$ 5 milhões",
+  texto: "em faturamento gerado para a área da harmonização, nos últimos 7 meses.",
+};
+
 const PROGRAMA = [
   { title: "Recepção", text: "Boas-vindas e brinde de abertura." },
   { title: "Abertura", text: "O que nos trouxe até aqui." },
@@ -257,14 +264,7 @@ const CSS = `
 .lx-intro-mark{display:flex;gap:.34em;font-size:clamp(34px,9vw,60px);font-weight:300;letter-spacing:.1em;color:var(--gold-hi)}
 .lx-intro-mark span{opacity:0;animation:lxLetter 1s cubic-bezier(.2,.7,.2,1) both}
 .lx-intro-actions{display:flex;flex-direction:column;align-items:center;margin-top:8px;opacity:0;animation:lxFade 1.2s 2.5s ease both}
-.lx-gate{position:relative;width:min(92vw,400px);padding:30px 26px 24px;text-align:center;border:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(200,169,106,.07),rgba(10,10,10,.65));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-.lx-gate::before{content:"";position:absolute;inset:7px;border:1px solid rgba(200,169,106,.1);pointer-events:none}
-.lx-gate-title{margin:0;font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold)}
-.lx-gate-q{margin:12px 0 22px;font:400 clamp(24px,6.4vw,30px)/1.15 'Cormorant Garamond',Georgia,serif}
-.lx-gate .lx-btn{width:100%;padding:17px 14px;font-size:11px;letter-spacing:.26em}
-.lx-gate .lx-btn+.lx-btn{margin-top:12px}
-.lx-gate-note{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px 0 0;font-size:11px;letter-spacing:.16em;color:var(--mut)}
+.lx-intro-hint{margin:16px 0 0;font-size:11px;letter-spacing:.16em;color:var(--mut)}
 .lx-intro-sub{margin:0;font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:var(--mut);opacity:0;animation:lxFade 1s 1.5s ease both}
 
 /* hero */
@@ -334,6 +334,13 @@ const CSS = `
 .lx-field input:focus{border-bottom-color:var(--gold-hi)}
 .lx-err{margin:20px 0 0;color:#e58b7a;font-size:14px}
 
+/* prova */
+.lx-proof{padding:96px 24px 0;text-align:center}
+.lx-proof-in{max-width:760px;margin:0 auto;padding:54px 20px 50px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.lx-proof-pre{margin:20px 0 0;font:italic 400 clamp(20px,4vw,26px) 'Cormorant Garamond',Georgia,serif;color:var(--gold-hi)}
+.lx-proof-num{margin:4px 0 0;font:300 clamp(54px,13vw,112px)/1.02 'Cormorant Garamond',Georgia,serif;letter-spacing:-.02em}
+.lx-proof-cap{margin:18px auto 0;max-width:520px;color:#cfc7b8;font-size:clamp(15px,2.2vw,18px);line-height:1.7}
+
 /* pilares */
 .lx-pillars{display:grid;gap:18px;margin-top:64px}
 .lx-pillars>.lx-rv{display:flex}
@@ -343,6 +350,10 @@ const CSS = `
 .lx-pillar .num{display:block;font:italic 400 64px/1 'Cormorant Garamond',Georgia,serif;color:rgba(239,223,178,.55)}
 .lx-pillar h3{margin:18px 0 0;font:400 28px/1.1 'Cormorant Garamond',Georgia,serif}
 .lx-pillar p{margin:12px 0 0;color:var(--mut);font-size:15px;line-height:1.7}
+
+/* pergunta cliente ou convidado */
+.lx-ask{display:grid;gap:12px;margin-top:28px}
+.lx-ask .lx-btn{width:100%;padding:17px 14px;font-size:11px;letter-spacing:.26em}
 
 /* pop-up de confirmação */
 .lx-modal{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,3,3,.74);
@@ -400,6 +411,7 @@ const CSS = `
 .lx-rv.in{opacity:1;transform:none;filter:none}
 
 @media (min-width:768px){
+  .lx-proof{padding-top:130px}
   .lx-meta{grid-template-columns:repeat(4,1fr)}
   .lx-meta>div:nth-child(odd){border-left:1px solid var(--line)}
   .lx-meta>div:first-child{border-left:0}
@@ -824,7 +836,7 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
   const [hasAudio, setHasAudio] = useState(false);
   const [muted, setMuted] = useState(false);
 
-  const [audience, setAudience] = useState<Audience>("convidado");
+  const [audience, setAudience] = useState<Audience | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmed, setConfirmed] = useState<{ vai: boolean } | null>(null);
   const [nome, setNome] = useState("");
@@ -835,6 +847,8 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  const autoOpened = useRef(false);
 
   // Trava a rolagem do site enquanto a porta de entrada ou o pop-up estiverem abertos.
   useEffect(() => {
@@ -859,15 +873,45 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
     };
   }, [modalOpen, confirmed, audience]);
 
-  // Porta de entrada: a escolha libera o áudio, abre o site e, logo depois, o pop-up da pessoa.
-  const enter = (kind: Audience) => {
+  // O pop-up só aparece sozinho quando a pessoa chega ao final da página (depois de ler o evento).
+  useEffect(() => {
+    if (intro !== "gone") return;
+    const el = footerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || autoOpened.current) return;
+        autoOpened.current = true;
+        window.setTimeout(() => {
+          playUi("tap");
+          setErr("");
+          setModalOpen(true);
+        }, 600);
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [intro]);
+
+  // Abertura: o toque em "Entrar" libera o áudio e mostra o site para a pessoa ler.
+  const enter = () => {
     if (intro !== "show") return;
     playEntrance();
     setHasAudio(true);
-    setAudience(kind);
     setIntro("leaving");
     window.setTimeout(() => setIntro("gone"), 1100);
-    window.setTimeout(() => setModalOpen(true), 1500);
+  };
+
+  const scrollToEvent = () => {
+    playUi("tap");
+    document.getElementById("evento")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const choose = (kind: Audience) => {
+    playUi("tap");
+    setAudience(kind);
+    setErr("");
   };
 
   const openModal = () => {
@@ -970,11 +1014,7 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
   };
 
   const ready = intro !== "show";
-  const ctaLabel = confirmed
-    ? "Ver minha confirmação"
-    : audience === "cliente"
-      ? "Confirmar minha ida"
-      : "Reservar meu lugar";
+  const ctaLabel = confirmed ? "Ver minha confirmação" : "Reservar meu lugar";
 
   const calendarButtons = (
     <div className="lx-cal">
@@ -1005,7 +1045,7 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
     <div className={`lx ${ready ? "is-ready" : ""}`}>
       <style>{CSS}</style>
 
-      {/* PORTA DE ENTRADA: pop-up antes do site */}
+      {/* ABERTURA */}
       {intro !== "gone" && (
         <div className={`lx-intro ${intro === "leaving" ? "is-leaving" : ""}`}>
           <div className="lx-intro-inner">
@@ -1022,17 +1062,11 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
             </div>
             <p className="lx-intro-sub">Convite exclusivo</p>
             <div className="lx-intro-actions">
-              <div className="lx-gate" role="group" aria-label="Antes de entrar">
-                <p className="lx-gate-title">Antes de entrar</p>
-                <p className="lx-gate-q">Você já é cliente da Altta?</p>
-                <button type="button" className="lx-btn solid" onClick={() => enter("cliente")}>
-                  Sim, já sou cliente
-                </button>
-                <button type="button" className="lx-btn" onClick={() => enter("convidado")}>
-                  Não, fui convidado(a)
-                </button>
-                <p className="lx-gate-note">{SPEAKER_ICON} Este convite tem som</p>
-              </div>
+              <button type="button" className="lx-btn solid" onClick={enter}>
+                {SPEAKER_ICON}
+                Entrar
+              </button>
+              <p className="lx-intro-hint">Este convite tem som</p>
             </div>
             <span className="lx-intro-line b" />
           </div>
@@ -1085,8 +1119,8 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
           <span className="l2 lx-gold">{EVENT.titleLine2}</span>
         </h1>
         <p className="lx-lede ha" style={{ "--d": "0.6s" } as CSSProperties}>
-          Uma noite fechada com profissionais num nível acima do mercado, que faturam{" "}
-          <b>mais de R$ 1 milhão por ano</b> e vão contar como fizeram.
+          Uma noite fechada com profissionais da harmonização num nível acima do mercado, que
+          faturam <b>mais de R$ 1 milhão por ano</b> e vão contar como fizeram.
         </p>
 
         <div className="lx-meta ha" style={{ "--d": "0.8s" } as CSSProperties}>
@@ -1115,11 +1149,11 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
 
         <button
           type="button"
-          onClick={openModal}
+          onClick={scrollToEvent}
           className="lx-btn solid ha"
           style={{ "--d": "1s", marginTop: 34 } as CSSProperties}
         >
-          {ctaLabel}
+          Conhecer o evento
         </button>
         <p
           className="ha"
@@ -1138,12 +1172,24 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
         <span className="lx-scroll" />
       </header>
 
+      {/* PROVA */}
+      <section id="evento" className="lx-proof">
+        <Reveal>
+          <div className="lx-proof-in">
+            <span className="lx-eyebrow both">{EVENT.brand} já gerou</span>
+            <p className="lx-proof-pre">{PROVA.prefixo}</p>
+            <p className="lx-proof-num lx-gold">{PROVA.numero}</p>
+            <p className="lx-proof-cap">{PROVA.texto}</p>
+          </div>
+        </Reveal>
+      </section>
+
       {/* O QUE ESPERAR */}
       <section className="lx-sec">
         <div className="lx-wrap">
           <Reveal>
             <p className="lx-statement">
-              Profissionais num nível <em>acima do mercado</em>.{" "}
+              Profissionais da harmonização num nível <em>acima do mercado</em>.{" "}
               <em className="lx-gold">Mais de R$ 1 milhão</em> por ano. Uma noite para ouvir, de
               perto, <em>como foi feito.</em>
             </p>
@@ -1226,10 +1272,7 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
                 Reserve o <em className="lx-gold">seu lugar</em>
               </h2>
               <p className="lx-p" style={{ margin: "18px auto 0" }}>
-                {audience === "cliente"
-                  ? "Confirme a sua ida em menos de um minuto."
-                  : "Preencha seus dados para garantir o seu lugar."}{" "}
-                Confirmação até {EVENT.rsvpDeadline}.
+                Confirme a sua presença em menos de um minuto. Confirmação até {EVENT.rsvpDeadline}.
               </p>
               <button
                 type="button"
@@ -1283,6 +1326,7 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
       </section>
 
       <footer
+        ref={footerRef}
         style={{
           padding: "90px 24px 60px",
           textAlign: "center",
@@ -1316,7 +1360,22 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
               ×
             </button>
 
-            {confirmed ? (
+            {!audience ? (
+              <div style={{ textAlign: "center" }}>
+                <span className="lx-eyebrow both">Antes de reservar</span>
+                <h2 id="rsvp-title" className="lx-h2">
+                  Você já é <em className="lx-gold">cliente da Altta</em>?
+                </h2>
+                <div className="lx-ask">
+                  <button type="button" className="lx-btn solid" onClick={() => choose("cliente")}>
+                    Sim, já sou cliente
+                  </button>
+                  <button type="button" className="lx-btn" onClick={() => choose("convidado")}>
+                    Não, fui convidado(a)
+                  </button>
+                </div>
+              </div>
+            ) : confirmed ? (
               <div style={{ textAlign: "center" }}>
                 {confirmed.vai ? (
                   <>
@@ -1448,7 +1507,7 @@ export function EventoPage({ invitedBy }: { invitedBy?: string }) {
                     <label className="lx-field">
                       <span>Especialidade</span>
                       <input
-                        placeholder="Ex.: Dentista, Dermatologista..."
+                        placeholder="Ex.: Harmonização facial, Dentista..."
                         value={especialidade}
                         onChange={(e) => setEspecialidade(e.target.value)}
                       />

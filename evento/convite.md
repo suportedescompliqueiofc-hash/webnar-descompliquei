@@ -24,7 +24,7 @@
 **Interior**
 
 > Na noite de **7 de dezembro**, a Altta reúne um grupo fechado de profissionais
-> num nível acima do mercado: gente que **fatura mais de R$ 1 milhão por ano**
+> da harmonização num nível acima do mercado: gente que **fatura mais de R$ 1 milhão por ano**
 > e vai contar como fez, além das **tendências** que vão definir os próximos
 > anos do seu consultório.
 >
@@ -105,6 +105,7 @@
 
 ## Observações
 
+- **Prova da Altta (opcional no cartão):** "A Altta já gerou mais de R$ 5 milhões em faturamento para a área da harmonização nos últimos 7 meses." (já está na página; confirme o número antes de imprimir)
 - **Sem nomes nem rostos:** o convite e a página vendem o evento e o nível da sala. Os palestrantes não são identificados.
 - **Cliente x convidado:** o cliente só confirma o nome e se vai ou não; o convidado informa nome, telefone, Instagram e especialidade. A página decide isso com o pop-up de entrada.
 - **Tom:** convite pessoal e sóbrio. Evite apelos de venda; a noite é de relacionamento e conteúdo.
