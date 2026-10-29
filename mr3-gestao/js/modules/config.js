@@ -56,7 +56,7 @@
           <div class="field"><label for="c-m4">Envio da ficha de cadastro</label><textarea id="c-m4" class="input" name="msgFicha" rows="4">${esc(cfg.mensagens.ficha)}</textarea><span class="hint">Use <code>{link}</code> onde o endereço da ficha deve aparecer.</span></div>
         </div></div>
 
-        <div class="card span-2"><div class="card-head"><h2>${UI.icon('clipboard-pen')}Ficha de cadastro</h2><a class="btn btn-sm" href="ficha.html" target="_blank" rel="noopener">${UI.icon('external-link')}Abrir a ficha</a></div><div class="card-body stack">
+        <div class="card span-2"><div class="card-head"><h2>${UI.icon('clipboard-pen')}Ficha de cadastro</h2><button type="button" class="btn btn-sm" id="cf-ficha">${UI.icon('eye')}Ver a ficha</button></div><div class="card-body stack">
           <p class="muted small">A ficha (<b>ficha.html</b>) precisa estar publicada na internet para os atletas abrirem no celular. Publique a pasta do sistema (Netlify, Vercel ou GitHub Pages) e cole aqui o endereço da ficha. O link enviado já leva seu WhatsApp, para a ficha voltar direto para você.</p>
           <div class="field"><label for="c-furl">Endereço público do ficha.html</label><input id="c-furl" class="input" name="fichaUrl" type="url" inputmode="url" placeholder="https://seu-site.netlify.app/ficha.html" value="${esc(cfg.fichaUrl)}"></div>
           ${!cfg.telefone ? `<div class="alert warning">${UI.icon('alert-triangle')}<div>Preencha o seu telefone acima: é para ele que as fichas são enviadas.</div></div>` : ''}
@@ -138,6 +138,7 @@
     el.querySelector('#csv-pg').onclick = () => MR3.Fin.exportPagamentosCSV();
     el.querySelector('#csv-se').onclick = () => MR3.Sessoes.exportCSV();
     el.querySelector('#bk-wipe').onclick = apagarTudo;
+    el.querySelector('#cf-ficha').onclick = () => MR3.Fichas.preencherAqui();
   }
 
   function exportJSON() {

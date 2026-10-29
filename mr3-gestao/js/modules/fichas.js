@@ -119,7 +119,27 @@
     UI.whatsapp({ telefone: atleta ? atleta.telefone || (atleta.responsavel && atleta.responsavel.telefone) : '', titulo: 'Enviar ficha de cadastro', mensagem: msg, nome: atleta ? atleta.nome : '', permitirSemNumero: true });
   }
 
-  function preencherAqui() { location.href = 'ficha.html'; }
+  /** Preenchimento presencial: a ficha abre dentro do sistema (não depende do ficha.html). */
+  function preencherAqui() {
+    UI.modal({
+      title: 'Ficha de cadastro', size: 'lg',
+      body: `<p class="muted mb-3">Preencha junto com o atleta ou responsável. Campos com <span class="req">*</span> são obrigatórios.</p><form id="fp-form" class="ficha-inline" novalidate>${Ficha.formHtml({}, 'fp-')}</form>`,
+      footer: `<button class="btn" data-close>Cancelar</button><button class="btn btn-gold" id="fp-ok">${UI.icon('check')}Salvar ficha</button>`,
+      onOpen(el, close) {
+        const form = el.querySelector('#fp-form');
+        Ficha.bind(form);
+        el.querySelector('#fp-ok').onclick = () => {
+          const d = Ficha.read(form);
+          if (!Ficha.showErrors(form, Ficha.validate(d))) { UI.toast('Confira os campos destacados.', 'error'); return; }
+          const rec = salvarFicha(Object.assign({ v: 1, enviadaEm: U.today() }, d), 'presencial');
+          close();
+          if (!rec) { UI.toast('Esta ficha já estava salva.', 'info'); return; }
+          UI.toast(`Ficha de ${U.firstName(d.nome)} salva. Agora é só criar o atleta.`);
+          if (location.hash.startsWith('#/fichas')) MR3.refresh(); else location.hash = '#/fichas';
+        };
+      },
+    });
+  }
 
   function importar() {
     UI.modal({

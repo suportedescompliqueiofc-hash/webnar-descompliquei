@@ -655,6 +655,11 @@ a.person:hover .name { color: var(--primary-text); }
 .ficha-view-sec h3 { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 .ficha-view-sec h3 svg { color: var(--gold-text); }
 
+/* Ficha dentro do sistema (modal) */
+.ficha-inline { display: flex; flex-direction: column; gap: 14px; }
+.ficha-inline .ficha-sec { box-shadow: none; background: var(--surface-2); padding: 16px; }
+.ficha-inline .ficha-sec .input { background: var(--surface); }
+
 /* Página pública da ficha (ficha.html) */
 .ficha-page { padding-bottom: calc(84px + var(--safe-b)); }
 .ficha-hero { position: relative; overflow: hidden; background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 38%, var(--bg)) 0%, var(--bg) 70%); border-bottom: 1px solid var(--border); }
